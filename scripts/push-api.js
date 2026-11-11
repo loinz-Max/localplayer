@@ -74,9 +74,15 @@ async function api(path, method = 'GET', body) {
 
   // 找一个本地提交，其文件树等于远端父提交的文件树
   let base = remoteSha;
+  let hasRemoteObject = true;
   try {
-    git('rev-parse', '--verify', `${remoteSha}^{commit}`);
+    execFileSync('git', ['rev-parse', '--verify', '--quiet', `${remoteSha}^{commit}`], {
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
   } catch (e) {
+    hasRemoteObject = false;
+  }
+  if (!hasRemoteObject) {
     const lines = git('log', '--format=%H %T', '-n', '40').trim().split('\n');
     const twin = lines.find((line) => line.split(' ')[1] === remoteCommit.tree.sha);
     if (!twin) throw new Error('本地找不到与远端父提交文件树一致的提交，历史可能已分叉，请先 fetch');
