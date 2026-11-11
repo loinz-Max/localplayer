@@ -190,7 +190,7 @@ struct CardMenu: View {
             )
             MenuRowButton(
                 title: "重命名",
-                icon: "character.cursor.ibeam",
+                icon: "pencil",
                 height: 42,
                 fontSize: 15,
                 iconWidth: 19,
@@ -252,7 +252,7 @@ struct FolderMenu: View {
 
             MenuRowButton(
                 title: "重命名",
-                icon: "character.cursor.ibeam",
+                icon: "pencil",
                 height: 42,
                 fontSize: 15,
                 iconWidth: 19,
@@ -330,6 +330,8 @@ struct MoveFolderSheet: View {
             }
         }
         .preferredColorScheme(.dark)
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     private func row(_ choice: FolderChoice) -> some View {
