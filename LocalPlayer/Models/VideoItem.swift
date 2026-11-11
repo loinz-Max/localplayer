@@ -15,14 +15,16 @@ struct VideoItem: Identifiable, Hashable {
 
     var displayName: String { (name as NSString).deletingPathExtension }
 
-    /// 系统原生解码（AVPlayer）能直接播的容器
+    /// 系统原生解码（AVPlayer）能直接播的容器。
+    /// 不放 ts / m2ts：AVPlayer 只在 HLS 分片里认 MPEG-TS，独立的 .ts 文件经常直接失败，
+    /// 放进来会让界面显示「可播」但点开报错。它们仍会出现在列表里（带警告图标）。
     static let systemExtensions: Set<String> = [
-        "mp4", "mov", "m4v", "3gp", "m2ts", "ts", "mpg", "mpeg"
+        "mp4", "mov", "m4v", "3gp", "mpg", "mpeg"
     ]
 
     /// 列表里愿意展示的所有视频扩展名
     static let videoExtensions: Set<String> = systemExtensions.union([
-        "mkv", "avi", "wmv", "flv", "webm", "rmvb", "rm", "ogv", "vob", "asf", "divx", "mts"
+        "mkv", "avi", "wmv", "flv", "webm", "rmvb", "rm", "ogv", "vob", "asf", "divx", "mts", "m2ts", "ts"
     ])
 
     var systemPlayable: Bool {

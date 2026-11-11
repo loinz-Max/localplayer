@@ -19,13 +19,9 @@ struct PlayerScreen: View {
     init(item: VideoItem, queue: [VideoItem]) {
         self.queue = queue
         _current = State(initialValue: item)
-
-        let defaults = UserDefaults.standard
-        let savedRate = (defaults.object(forKey: "defaultRate") as? Double) ?? 1.0
-        _rate = State(initialValue: savedRate)
-
-        let raw = (defaults.object(forKey: "defaultPlayMode") as? String) ?? PlayMode.loopAll.rawValue
-        _mode = State(initialValue: PlayMode(rawValue: raw) ?? .loopAll)
+        // 起始倍速/模式从设置里取；键名与读写都收在 AppSettings 里
+        _rate = State(initialValue: AppSettings.storedRate())
+        _mode = State(initialValue: AppSettings.storedPlayMode())
     }
 
     var body: some View {

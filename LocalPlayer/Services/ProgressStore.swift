@@ -114,8 +114,8 @@ final class ProgressStore: ObservableObject {
         watched = Set(snap.watched ?? [])
     }
 
-    /// 重新从磁盘读一次。DebugSeed 写入示例数据发生在属性初始化之后，
-    /// 靠这个把种子记录读进来（正常使用时是幂等的）。
+    /// 重新从磁盘读一次。用于外部改过 UserDefaults 后让内存与磁盘对齐
+    /// （例如调试脚本预置数据、或将来做 iCloud/文件同步）。正常使用时是幂等的。
     func refresh() { load() }
 
     private func save() {

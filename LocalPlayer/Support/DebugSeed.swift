@@ -4,7 +4,7 @@ import CoreVideo
 import UIKit
 
 /// 仅 Debug 编译。用于在模拟器里生成几段示例视频，
-/// 这样启动后能看到真实的缩略图/卡片/续播，而不是空列表。
+/// 这样启动后能看到真实的缩略图/卡片网格，而不是空列表。
 /// 通过启动参数 `-seedDemo 1` 触发，正式包不包含这些代码。
 enum DebugSeed {
 
@@ -38,7 +38,6 @@ enum DebugSeed {
 
     static func runIfNeeded() {
         guard isEnabled else { return }
-        seedProgressIfNeeded()
         let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let folder = documents.appendingPathComponent("示例视频", isDirectory: true)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -78,25 +77,6 @@ enum DebugSeed {
             let url = documents.appendingPathComponent(spec.name)
             guard !FileManager.default.fileExists(atPath: url.path) else { continue }
             writeClip(to: url, top: spec.top, bottom: spec.bottom, seconds: 8)
-        }
-    }
-
-    /// 伪造两条播放记录，只为让首页的「继续观看」能出现在截图里。
-    /// 格式必须与 `ProgressStore.Snapshot` 一致（positions / totals / lastPlayed / order）。
-    private static func seedProgressIfNeeded() {
-        let key = "progress.snapshot.v1"
-        guard UserDefaults.standard.data(forKey: key) == nil else { return }
-
-        let a = "示例视频/城市夜景 4K.mp4"
-        let b = "示例视频/海边的日落.mp4"
-        let payload: [String: Any] = [
-            "positions": [a: 5.6, b: 3.1],
-            "totals": [a: 8.0, b: 8.0],
-            "lastPlayed": a,
-            "order": [a, b]
-        ]
-        if let data = try? JSONSerialization.data(withJSONObject: payload) {
-            UserDefaults.standard.set(data, forKey: key)
         }
     }
 

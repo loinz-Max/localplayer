@@ -1,7 +1,8 @@
 # 交接文档 · 本地播放器（LocalPlayer）
 
-> 最后更新：2026-11-11 17:52
-> 当前状态：**界面已按原型全部重写完成，代码编译通过（模拟器 + ipa 两个 job 都 success），等待视觉校对与真机验证。**
+> 最后更新：2026-11-11 20:40
+> 当前状态：**界面已按原型重写完成；已在 GitHub Actions 上编译通过并产出真实截图与未签名 ipa；等待真机验证。**
+> 仓库：<https://github.com/loinz-Max/localplayer>（2026-11-11 迁自旧仓库 `hayatlia58-blip/localplayer`）
 
 ---
 
@@ -11,14 +12,18 @@
 |---|---|
 | 界面原型（网页版 10 屏，可点可看） | ✅ 完成，定稿 |
 | SwiftUI 按原型重写 | ✅ 完成，已编译通过 |
-| 模拟器截图校对视觉 | ⏳ 待做（CI runner 排队中） |
+| 模拟器截图校对视觉 | ✅ 完成（run `43018730340`，6 张图在 `ci-shots` 分支） |
 | 真机安装试用 | ⏳ 待做 |
-| 文档同步（README / DESIGN.md） | ⏳ 未做，本文档先顶上 |
+| 文档同步（README / DESIGN.md） | ✅ 完成（v0.3，2026-11-11） |
 
 **原型文件**：`preview/ui-v3.html`（直接双击用浏览器打开；加 `?only=3` 只看第 4 屏）
 
-上一次成功的构建：run `42993164915`（commit `ba911a1`），模拟器与 ipa 两个 job 均 success。
-之后的 run `42994968996` / `42997267224` 是 **macOS runner 容量不足没分配到机器**（annotation 原文：`The job was not acquired by Runner of type hosted even after multiple attempts`），**不是代码问题**，重新触发即可。
+**当前可用的构建**：run `43018730340`（commit `977e768`），模拟器与 ipa 两个 job 均 success。截图自动推到 `ci-shots` 分支（新仓库已把 Workflow permissions 设为 Read and write，这条链路现在是通的）。
+
+### 视觉校对结论（2026-11-11）
+
+- `02-home` / `03-folder` / `04-player` / `05-settings` / `01-empty`：与原型一致，无遮挡错位。
+- `06-player-landscape`：截图里控件侧躺 —— 是 `simctl io screenshot` 只拍竖屏 buffer 的已知现象，**不是布局问题**，真机仍需确认三块是否真等高。
 
 ---
 
@@ -66,18 +71,18 @@
 ## 三、接下来要做的（按优先级）
 
 ### P0 · 必须先做
-1. **看模拟器截图校对视觉**：等 CI 跑完，从 `ci-shots` 分支或 Actions artifact 取 `02-home / 03-folder / 04-player / 06-player-landscape`，和 `preview/ui-v3.html` 逐屏对比。
-   重点核对：玻璃在近黑背景上会不会太淡、长按菜单锚点是否贴准、卡片标题基线、横屏三块是否真的一样高。
-2. **真机装一次**：下载 `LocalPlayer-unsigned.ipa`，用 Sideloadly 签名装机（免费账号 7 天有效），确认：
+1. **真机装一次**：下载 `LocalPlayer-unsigned.ipa`，用 Sideloadly 签名装机（免费账号 7 天有效），确认：
    - 相册/文件导入 → 网格出现缩略图
    - 长按菜单三项都能用
-   - 横屏播放、两个抽屉、截图存相册
-3. **重命名交互确认**：现在是「改磁盘文件名」。如果想改成「只改显示名」（更安全，不会因为同名失败），需要加一个 `displayNames` 字典到 UserDefaults，改 `VideoItem.displayName` 的取值来源。
+   - **横屏播放：三块功能区是否真的等高**（模拟器截图看不出）
+   - 两个抽屉、截图存相册、长按 2×、双击 ±10 秒不抢事件
+2. **重命名交互确认**：现在是「改磁盘文件名」。如果想改成「只改显示名」（更安全，不会因为同名失败），需要加一个 `displayNames` 字典到 UserDefaults，改 `VideoItem.displayName` 的取值来源。
 
 ### P1 · 收尾
-4. 更新 `README.md`（截图清单、功能说明要改：没有画中画、没有音轨、没有搜索）和 `DESIGN.md`（旧的 v2 设计已作废，直接指向 `preview/ui-v3.html`）。
-5. 删掉 `DebugSeed.seedProgressIfNeeded()` 里「继续观看」的伪数据（那个板块已经删了，留着没用）。
-6. 清理 `.ci/`（里面有旧的 ipa 和截图，是历史遗留，可以整个删）。
+3. ~~更新 README.md / DESIGN.md~~ ✅ 2026-11-11 已完成
+4. ~~删掉 `DebugSeed.seedProgressIfNeeded()` 的伪数据~~ ✅ 已完成
+5. ~~清理 `.ci/`~~ — 该目录在交接包里已不存在
+6. 删掉 `preview/shots/` 里 4 张旧原型图（可选，只是体积）
 
 ### P2 · 以后想加再说
 7. 排序里补「文件大小」（原型没做）。
@@ -106,7 +111,8 @@ open LocalPlayer.xcodeproj # 选自己的 iPhone，⌘R
 
 ### 换电脑 / 换 GitHub 账号
 1. 解压这个 zip 到新电脑。
-2. 如果沿用旧仓库：`git remote set-url origin <新仓库地址>`；如果是新账号新建仓库：
+2. 当前 `origin` 指向 `https://github.com/loinz-Max/localplayer.git`，本机凭据由 Git Credential Manager 管理（已存 `loinz-Max`）。换账号时先清掉旧凭据：Windows「凭据管理器 → Windows 凭据」删掉 `git:https://github.com`，再 push 会重新弹窗登录。
+3. 如果沿用旧仓库：`git remote set-url origin <新仓库地址>`；如果是新账号新建仓库：
    ```bash
    cd LocalPlayer
    rm -rf .git                 # 想丢掉旧历史才这么做，否则跳过
@@ -114,8 +120,8 @@ open LocalPlayer.xcodeproj # 选自己的 iPhone，⌘R
    git remote add origin https://github.com/<新账号>/<新仓库>.git
    git push -u origin main
    ```
-3. **新仓库第一次跑 Actions 要注意**：Settings → Actions → General → Workflow permissions 选 **Read and write**，否则「把截图推到 ci-shots 分支」那步会失败（不影响编译，只是看不到截图）。
-4. 想换 bundle id：改 `project.yml` 里的 `PRODUCT_BUNDLE_IDENTIFIER`。
+4. **新仓库第一次跑 Actions 要注意**：Settings → Actions → General → Workflow permissions 选 **Read and write**，否则「把截图推到 ci-shots 分支」那步会失败（不影响编译，只是看不到截图）。
+5. 想换 bundle id：改 `project.yml` 里的 `PRODUCT_BUNDLE_IDENTIFIER`。
 
 ---
 
