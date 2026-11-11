@@ -80,6 +80,10 @@ private struct PlayerCore: View {
     @State private var keepAwake = true
     @State private var toastText: String?
 
+    /// 防误触：锁上后除了「长按 1 秒解除」以外的所有触摸都不响应
+    @State private var touchLocked = false
+    @State private var lockHintVisible = false
+
     @State private var hud: HUD?
     @State private var hudToken = 0
 
@@ -158,6 +162,10 @@ private struct PlayerCore: View {
 
             hudLayer
 
+            if touchLocked {
+                lockLayer
+            }
+
             if let toastText {
                 toastView(toastText)
             }
@@ -175,6 +183,9 @@ private struct PlayerCore: View {
         }
         .onChange(of: keepAwake) { _, value in
             UIApplication.shared.isIdleTimerDisabled = value
+        }
+        .onChange(of: touchLocked) { _, locked in
+            if locked { engageLock() }
         }
         .onChange(of: model.duration) { _, value in
             if !didRestore, value > 0 { restorePosition() }
@@ -365,14 +376,68 @@ private struct PlayerCore: View {
         #if DEBUG
         if DebugSeed.argument(after: "-keepChrome") == "1" { return }
         #endif
+        guard !touchLocked else { return }
         hideToken += 1
         let token = hideToken
         guard model.isPlaying, panel == nil else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+        let delay = max(1, settings.autoHideDelay)
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             if hideToken == token, model.isPlaying {
                 withAnimation(.easeInOut(duration: 0.2)) { chromeVisible = false }
             }
         }
+    }
+
+    // MARK: - 防误触
+
+    /// 锁上：收起抽屉与控件，只在开头 2.5 秒提示怎么解锁
+    private func engageLock() {
+        hideToken += 1
+        withAnimation(.easeOut(duration: 0.2)) { panel = nil }
+        withAnimation(.easeInOut(duration: 0.2)) { chromeVisible = false }
+        withAnimation(.easeOut(duration: 0.2)) { lockHintVisible = true }
+        hud = nil
+
+        let token = hideToken
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            if hideToken == token, touchLocked {
+                withAnimation(.easeOut(duration: 0.3)) { lockHintVisible = false }
+            }
+        }
+    }
+
+    private func unlock() {
+        withAnimation(.easeOut(duration: 0.2)) { touchLocked = false }
+        lockHintVisible = false
+        showChrome(persistent: false)
+        showToast("已解除锁定")
+    }
+
+    /// 锁定时铺满全屏的触摸拦截层：单击无视，长按 1 秒解除
+    private var lockLayer: some View {
+        ZStack {
+            Color.black.opacity(0.001)
+
+            if lockHintVisible {
+                VStack(spacing: 9) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundStyle(.white)
+                    Text("已锁定 · 长按 1 秒解除")
+                        .font(.system(size: 12.5, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .padding(.horizontal, 22)
+                .padding(.vertical, 16)
+                .background(
+                    Color.black.opacity(0.55),
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                )
+            }
+        }
+        .contentShape(Rectangle())
+        .onLongPressGesture(minimumDuration: 1) { unlock() }
+        .transition(.opacity)
     }
 
     private func openPanel(_ target: PlayerPanel) {
@@ -585,7 +650,8 @@ private struct PlayerCore: View {
                         rate: $rate,
                         mode: $mode,
                         gravityIndex: $gravityIndex,
-                        keepAwake: $keepAwake
+                        keepAwake: $keepAwake,
+                        locked: $touchLocked
                     )
                 }
             }

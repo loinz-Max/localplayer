@@ -11,6 +11,7 @@ final class AppSettings: ObservableObject {
         static let defaultPlayMode = "defaultPlayMode"
         static let sortKey = "sortKey"
         static let sortAscending = "sortAscending"
+        static let autoHideDelay = "autoHideDelay"
     }
 
     private let d = UserDefaults.standard
@@ -58,6 +59,12 @@ final class AppSettings: ObservableObject {
     var sortAscending: Bool {
         get { read(Key.sortAscending, false) }
         set { write(Key.sortAscending, newValue) }
+    }
+
+    /// 播放页控件自动隐藏的秒数：2 / 4 / 6
+    var autoHideDelay: Double {
+        get { read(Key.autoHideDelay, 4.0) }
+        set { write(Key.autoHideDelay, newValue) }
     }
 }
 

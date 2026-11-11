@@ -1,6 +1,15 @@
 import Foundation
 import Combine
 
+/// 「移到文件夹」弹窗里的一个候选目录
+struct FolderChoice: Identifiable, Hashable {
+    let path: String
+    let display: String
+    let depth: Int
+
+    var id: String { path }
+}
+
 final class LibraryStore: ObservableObject {
     @Published private(set) var allItems: [VideoItem] = []
     @Published private(set) var folders: [String] = []
@@ -13,6 +22,7 @@ final class LibraryStore: ObservableObject {
 
     init() {
         documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        loadFolderNames()
         reload()
     }
 
@@ -143,5 +153,89 @@ final class LibraryStore: ObservableObject {
         let target = base.appendingPathComponent(trimmed)
         try? FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
         reload()
+    }
+
+    // MARK: - 文件夹：显示名 / 删除 / 移动
+
+    private let folderNamesKey = "folder.displayNames.v1"
+
+    /// 相对路径 → 自定义显示名。**只影响界面，磁盘目录名始终不变**，
+    /// 所以里面视频的 id（相对路径）和进度记录都不受影响。
+    @Published private(set) var folderNames: [String: String] = [:]
+
+    func displayName(forFolder path: String) -> String {
+        if let custom = folderNames[path], !custom.isEmpty { return custom }
+        return (path as NSString).lastPathComponent
+    }
+
+    func renameFolder(_ path: String, to newName: String) {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !path.isEmpty, !trimmed.isEmpty else { return }
+        if (path as NSString).lastPathComponent == trimmed {
+            folderNames.removeValue(forKey: path)
+        } else {
+            folderNames[path] = trimmed
+        }
+        saveFolderNames()
+        objectWillChange.send()
+    }
+
+    /// 递归删除整个文件夹，返回被删掉的视频数量
+    @discardableResult
+    func deleteFolder(_ path: String) -> Int {
+        guard !path.isEmpty else { return 0 }
+        let target = documents.appendingPathComponent(path, isDirectory: true)
+        let removed = itemsInside(path).count
+        try? FileManager.default.removeItem(at: target)
+        folderNames = folderNames.filter { key, _ in
+            key != path && !key.hasPrefix(path + "/")
+        }
+        saveFolderNames()
+        reload()
+        return removed
+    }
+
+    /// 某个文件夹（含子目录）里的所有视频
+    func itemsInside(_ folder: String) -> [VideoItem] {
+        allItems.filter { $0.folder == folder || $0.folder.hasPrefix(folder + "/") }
+    }
+
+    /// 把视频移到另一个文件夹（"" 表示根目录）。成功返回移动后的条目。
+    func move(_ item: VideoItem, to folder: String) -> VideoItem? {
+        guard item.folder != folder else { return item }
+        let destination = folder.isEmpty
+            ? documents
+            : documents.appendingPathComponent(folder, isDirectory: true)
+        try? FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
+        let target = FileManager.default.uniqueURL(in: destination, preferredName: item.name)
+        do {
+            try FileManager.default.moveItem(at: item.url, to: target)
+        } catch {
+            return nil
+        }
+        reload()
+        return VideoItem(url: target, documents: documents)
+    }
+
+    /// 移动弹窗用的目标列表：根目录在最前，其余按路径排序
+    var folderChoices: [FolderChoice] {
+        var result: [FolderChoice] = [
+            FolderChoice(path: "", display: "资料库（根目录）", depth: 0)
+        ]
+        for path in folders {
+            let depth = path.components(separatedBy: "/").count - 1
+            result.append(
+                FolderChoice(path: path, display: displayName(forFolder: path), depth: depth)
+            )
+        }
+        return result
+    }
+
+    private func loadFolderNames() {
+        folderNames = UserDefaults.standard.dictionary(forKey: folderNamesKey) as? [String: String] ?? [:]
+    }
+
+    private func saveFolderNames() {
+        UserDefaults.standard.set(folderNames, forKey: folderNamesKey)
     }
 }

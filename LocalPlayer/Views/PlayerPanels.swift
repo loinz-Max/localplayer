@@ -180,9 +180,14 @@ struct SettingsPanel: View {
     @Binding var mode: PlayMode
     @Binding var gravityIndex: Int
     @Binding var keepAwake: Bool
+    /// 防误触
+    @Binding var locked: Bool
+
+    @EnvironmentObject private var settings: AppSettings
 
     private let rates: [Double] = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
     private let gravityTitles = ["适应", "填充", "拉伸"]
+    private let autoHideOptions: [Double] = [2, 4, 6]
 
     var body: some View {
         PanelShell(isLandscape: isLandscape) {
@@ -245,6 +250,38 @@ struct SettingsPanel: View {
                 }
                 .frame(height: rowHeight)
 
+                PanelDivider().padding(.vertical, 6)
+
+                Text("自动隐藏")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.text)
+                    .frame(height: rowHeight, alignment: .leading)
+
+                SegmentedBar(
+                    titles: autoHideOptions.map { "\(Int($0)) 秒" },
+                    selected: autoHideIndex
+                ) { index in
+                    settings.autoHideDelay = autoHideOptions[index]
+                }
+
+                PanelDivider().padding(.vertical, 6)
+
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("防误触")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.text)
+                        Text("锁上后长按 1 秒解除")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Palette.tertiaryText)
+                    }
+                    Spacer(minLength: 0)
+                    Toggle("", isOn: $locked)
+                        .labelsHidden()
+                        .tint(Palette.accent)
+                }
+                .frame(height: rowHeight + 6)
+
                 PanelDivider().padding(.vertical, 10)
 
                 Text("倍速与模式只在本次播放有效，退出播放页就恢复默认")
@@ -256,6 +293,10 @@ struct SettingsPanel: View {
     }
 
     private var rowHeight: CGFloat { isLandscape ? 38 : 42 }
+
+    private var autoHideIndex: Int {
+        autoHideOptions.firstIndex(of: settings.autoHideDelay) ?? 1
+    }
 
     private var rateText: String {
         rate == 1 ? "1×" : "\(String(format: "%g", rate))×"

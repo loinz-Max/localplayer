@@ -9,12 +9,24 @@ private struct CardTarget: Equatable {
     let rect: CGRect
 }
 
+private struct FolderTarget: Equatable {
+    let path: String
+    let rect: CGRect
+}
+
 private enum LibraryPopup: Equatable {
     case importing
     case more
 }
 
 private struct CardFrameKey: PreferenceKey {
+    static var defaultValue: [String: CGRect] = [:]
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue()) { _, new in new }
+    }
+}
+
+private struct FolderFrameKey: PreferenceKey {
     static var defaultValue: [String: CGRect] = [:]
     static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
         value.merge(nextValue()) { _, new in new }
@@ -38,15 +50,22 @@ struct LibraryView: View {
 
     @State private var popup: LibraryPopup?
     @State private var target: CardTarget?
+    @State private var folderTarget: FolderTarget?
     /// 长按刚触发时，同一串手势不要再被当成「点空白关闭」
     @State private var menuGuard = Date.distantPast
     @State private var cardFrames: [String: CGRect] = [:]
+    @State private var folderFrames: [String: CGRect] = [:]
     /// 刷新缩略图时递增，用来强制 LazyVGrid 重建、重新生成缩略图
     @State private var refreshToken = 0
 
     @State private var renaming: VideoItem?
     @State private var renameText = ""
     @State private var deleting: VideoItem?
+
+    @State private var renamingFolder: String?
+    @State private var folderRenameText = ""
+    @State private var deletingFolder: String?
+    @State private var movingItem: VideoItem?
 
     @State private var toastText: String?
     @State private var toastToken = 0
@@ -67,13 +86,18 @@ struct LibraryView: View {
                     content
                 }
 
-                if popup != nil || target != nil {
+                if popup != nil || target != nil || folderTarget != nil {
                     scrim
                 }
 
                 if let target {
                     floatingCard(target)
                     cardMenu(target, screen: proxy.size)
+                }
+
+                if let folderTarget {
+                    floatingFolder(folderTarget)
+                    folderMenu(folderTarget, screen: proxy.size)
                 }
 
                 if let currentPopup = popup {
@@ -119,6 +143,7 @@ struct LibraryView: View {
             .coordinateSpace(name: "root")
             .animation(.easeOut(duration: 0.16), value: popup)
             .animation(.easeOut(duration: 0.16), value: target)
+            .animation(.easeOut(duration: 0.16), value: folderTarget)
         }
         .overlay { importingOverlay }
         .onAppear {
@@ -180,6 +205,28 @@ struct LibraryView: View {
         } message: { _ in
             Text("文件会从本机移除，这个操作不能撤销。")
         }
+        .alert("重命名文件夹", isPresented: folderRenameBinding) {
+            TextField("显示名称", text: $folderRenameText)
+            Button("取消", role: .cancel) { renamingFolder = nil }
+            Button("保存") { commitFolderRename() }
+        } message: {
+            Text("只改显示名，磁盘上的目录名不变，里面的视频不受影响。")
+        }
+        .alert(
+            "删除文件夹「\(deletingFolderName)」？",
+            isPresented: folderDeleteBinding,
+            presenting: deletingFolder
+        ) { path in
+            Button("取消", role: .cancel) { deletingFolder = nil }
+            Button("删除", role: .destructive) { deleteSelectedFolder(path) }
+        } message: { path in
+            Text("文件夹里的 \(library.itemsInside(path).count) 个视频会一起从本机移除，这个操作不能撤销。")
+        }
+        .sheet(item: $movingItem) { item in
+            MoveFolderSheet(item: item, choices: library.folderChoices) { path in
+                moveItem(item, to: path)
+            }
+        }
     }
 
     // MARK: - 顶栏
@@ -212,7 +259,7 @@ struct LibraryView: View {
 
     private var title: String {
         guard let folder = library.currentFolder else { return "资料库" }
-        return (folder as NSString).lastPathComponent
+        return library.displayName(forFolder: folder)
     }
 
     private var breadcrumb: some View {
@@ -252,8 +299,28 @@ struct LibraryView: View {
                     spacing: rowSpacing
                 ) {
                     ForEach(library.subfolders, id: \.self) { folder in
-                        FolderCard(name: (folder as NSString).lastPathComponent, count: count(in: folder))
-                            .onTapGesture { library.currentFolder = folder }
+                        FolderCard(
+                            name: library.displayName(forFolder: folder),
+                            count: count(in: folder)
+                        )
+                        .background {
+                            GeometryReader { geo in
+                                Color.clear.preference(
+                                    key: FolderFrameKey.self,
+                                    value: [folder: geo.frame(in: .named("root"))]
+                                )
+                            }
+                        }
+                        .onTapGesture {
+                            if folderTarget != nil || target != nil {
+                                if Date().timeIntervalSince(menuGuard) > 0.35 { closeMenus() }
+                            } else {
+                                library.currentFolder = folder
+                            }
+                        }
+                        .onLongPressGesture(minimumDuration: 0.38) {
+                            openFolderMenu(folder)
+                        }
                     }
 
                     ForEach(sortedVideos) { item in
@@ -268,6 +335,7 @@ struct LibraryView: View {
         }
         .scrollDismissesKeyboard(.immediately)
         .onPreferenceChange(CardFrameKey.self) { cardFrames = $0 }
+        .onPreferenceChange(FolderFrameKey.self) { folderFrames = $0 }
     }
 
     private func card(_ item: VideoItem) -> some View {
@@ -286,8 +354,8 @@ struct LibraryView: View {
             }
         }
         .onTapGesture {
-            if target != nil {
-                if Date().timeIntervalSince(menuGuard) > 0.35 { closeCardMenu() }
+            if target != nil || folderTarget != nil {
+                if Date().timeIntervalSince(menuGuard) > 0.35 { closeMenus() }
             } else {
                 playingItem = item
             }
@@ -322,6 +390,12 @@ struct LibraryView: View {
                 forward = a.name.localizedStandardCompare(b.name) == .orderedAscending
             case .added:
                 forward = a.modified > b.modified
+            case .size:
+                if a.fileSize != b.fileSize {
+                    forward = a.fileSize < b.fileSize
+                } else {
+                    forward = a.name.localizedStandardCompare(b.name) == .orderedAscending
+                }
             }
             return asc ? forward : !forward
         }
@@ -335,7 +409,7 @@ struct LibraryView: View {
             .transition(.opacity)
             .onTapGesture {
                 guard Date().timeIntervalSince(menuGuard) > 0.35 else { return }
-                closeCardMenu()
+                closeMenus()
                 popup = nil
             }
     }
@@ -347,6 +421,17 @@ struct LibraryView: View {
             fraction: progress.progressFraction(for: target.item.id),
             watched: progress.isWatched(target.item.id),
             active: true
+        )
+        .frame(width: target.rect.width, alignment: .top)
+        .position(x: target.rect.midX, y: target.rect.midY)
+        .allowsHitTesting(false)
+        .transition(.opacity)
+    }
+
+    private func floatingFolder(_ target: FolderTarget) -> some View {
+        FolderCard(
+            name: library.displayName(forFolder: target.path),
+            count: count(in: target.path)
         )
         .frame(width: target.rect.width, alignment: .top)
         .position(x: target.rect.midX, y: target.rect.midY)
@@ -376,6 +461,10 @@ struct LibraryView: View {
                 renaming = target.item
                 closeCardMenu()
             },
+            onMove: {
+                movingItem = target.item
+                closeCardMenu()
+            },
             onDelete: {
                 deleting = target.item
                 closeCardMenu()
@@ -385,8 +474,35 @@ struct LibraryView: View {
         .transition(.opacity)
     }
 
+    private func folderMenu(_ target: FolderTarget, screen: CGSize) -> some View {
+        let width = FolderMenu.width
+        let height = FolderMenu.estimatedHeight
+        let x = min(max(sidePadding, target.rect.minX), max(sidePadding, screen.width - sidePadding - width))
+        var y = target.rect.maxY + 8
+        if y + height > screen.height - 16 {
+            y = target.rect.minY - height - 8
+        }
+        y = max(16, y)
+
+        return FolderMenu(
+            name: library.displayName(forFolder: target.path),
+            onRename: {
+                folderRenameText = library.displayName(forFolder: target.path)
+                renamingFolder = target.path
+                closeMenus()
+            },
+            onDelete: {
+                deletingFolder = target.path
+                closeMenus()
+            }
+        )
+        .position(x: x + width / 2, y: y + height / 2)
+        .transition(.opacity)
+    }
+
     private func openCardMenu(_ item: VideoItem) {
         popup = nil
+        folderTarget = nil
         menuGuard = Date()
         let rect = cardFrames[item.id] ?? .zero
         withAnimation(.easeOut(duration: 0.16)) {
@@ -394,8 +510,25 @@ struct LibraryView: View {
         }
     }
 
+    private func openFolderMenu(_ path: String) {
+        popup = nil
+        target = nil
+        menuGuard = Date()
+        let rect = folderFrames[path] ?? .zero
+        withAnimation(.easeOut(duration: 0.16)) {
+            folderTarget = FolderTarget(path: path, rect: rect)
+        }
+    }
+
     private func closeCardMenu() {
         withAnimation(.easeOut(duration: 0.16)) { target = nil }
+    }
+
+    private func closeMenus() {
+        withAnimation(.easeOut(duration: 0.16)) {
+            target = nil
+            folderTarget = nil
+        }
     }
 
     // MARK: - 空状态
@@ -505,6 +638,25 @@ struct LibraryView: View {
         )
     }
 
+    private var folderRenameBinding: Binding<Bool> {
+        Binding(
+            get: { renamingFolder != nil },
+            set: { if !$0 { renamingFolder = nil } }
+        )
+    }
+
+    private var folderDeleteBinding: Binding<Bool> {
+        Binding(
+            get: { deletingFolder != nil },
+            set: { if !$0 { deletingFolder = nil } }
+        )
+    }
+
+    private var deletingFolderName: String {
+        guard let path = deletingFolder else { return "" }
+        return library.displayName(forFolder: path)
+    }
+
     // MARK: - 动作
 
     private func commitRename() {
@@ -517,6 +669,34 @@ struct LibraryView: View {
         }
         progress.renamePath(from: oldID, to: renamed.id)
         toast("已重命名")
+    }
+
+    private func commitFolderRename() {
+        guard let path = renamingFolder else { return }
+        renamingFolder = nil
+        library.renameFolder(path, to: folderRenameText)
+        toast("已重命名")
+    }
+
+    private func deleteSelectedFolder(_ path: String) {
+        let victims = library.itemsInside(path)
+        for item in victims { progress.forget(id: item.id) }
+        let removed = library.deleteFolder(path)
+        if library.currentFolder == path { library.currentFolder = nil }
+        deletingFolder = nil
+        toast(removed > 0 ? "已删除文件夹（含 \(removed) 个视频）" : "已删除空文件夹")
+    }
+
+    private func moveItem(_ item: VideoItem, to path: String) {
+        guard path != item.folder else { return }
+        let oldID = item.id
+        guard let moved = library.move(item, to: path) else {
+            toast("移动失败，目标里可能有同名文件")
+            return
+        }
+        progress.renamePath(from: oldID, to: moved.id)
+        let name = path.isEmpty ? "资料库" : library.displayName(forFolder: path)
+        toast("已移到「\(name)」")
     }
 
     private func handleFileImport(_ result: Result<[URL], Error>) {

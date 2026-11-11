@@ -52,9 +52,9 @@ extension VideoItem {
     }
 }
 
-/// 排序依据：⋯ 菜单里的三选一
+/// 排序依据：⋯ 菜单里的四选一
 enum SortKey: String, CaseIterable, Identifiable {
-    case recent, name, added
+    case recent, name, added, size
 
     var id: String { rawValue }
 
@@ -63,6 +63,7 @@ enum SortKey: String, CaseIterable, Identifiable {
         case .recent: return "最近播放"
         case .name: return "名称"
         case .added: return "添加日期"
+        case .size: return "文件大小"
         }
     }
 }
