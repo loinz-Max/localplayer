@@ -332,6 +332,8 @@ struct MoveFolderSheet: View {
         .preferredColorScheme(.dark)
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        // 系统 sheet 默认带材质，近黑配色下会透出底下的网格，这里铺一层实色
+        .presentationBackground(Palette.background)
     }
 
     private func row(_ choice: FolderChoice) -> some View {
