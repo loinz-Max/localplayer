@@ -1,184 +1,173 @@
 # 交接文档 · 本地播放器（LocalPlayer）
 
-> 最后更新：2026-11-11 22:35
-> 当前状态：**界面已按原型重写完成；已在 GitHub Actions 上编译通过并产出真实截图与未签名 ipa；等待真机验证。**
-> 仓库：<https://github.com/loinz-Max/localplayer>（2026-11-11 迁自旧仓库 `hayatlia58-blip/localplayer`）
+> 最后更新：2026-11-11 23:05
+> 仓库：<https://github.com/loinz-Max/localplayer>（**public**）
+> 当前状态：**界面已按参考图完成第二版改版，GitHub Actions 编译通过、模拟器截图与未签名 ipa 均已产出；只等真机验收。**
+> 最新提交：`a41fb66`（修复「外部导入的文件列表里看不到」）｜最新成功构建：run `43043048757`
 
 ---
 
-## 一、现在处于哪一步
+## 0. 换电脑 / 换账号，从这四步开始
 
-| 阶段 | 状态 |
-|---|---|
-| 界面原型（网页版 10 屏，可点可看） | ✅ 完成，定稿 |
-| SwiftUI 按原型重写 | ✅ 完成，已编译通过 |
-| 模拟器截图校对视觉 | ✅ 完成（run `43018730340`，6 张图在 `ci-shots` 分支） |
-| 真机安装试用 | ⏳ 待做 |
-| 文档同步（README / DESIGN.md） | ✅ 完成（v0.3，2026-11-11） |
-
-**原型文件**：`preview/ui-v3.html`（资料库与整体结构）＋ `preview/ui-v5-player.html`（播放页改版，含竖屏/横屏/倍速面板/设置页）。两者都支持 `?only=` 单屏查看。
-
-**当前可用的构建**：run `43018730340`（commit `977e768`），模拟器与 ipa 两个 job 均 success。截图自动推到 `ci-shots` 分支（新仓库已把 Workflow permissions 设为 Read and write，这条链路现在是通的）。
-
-### 视觉校对结论（2026-11-11）
-
-- `02-home` / `03-folder` / `04-player` / `05-settings` / `01-empty`：与原型一致，无遮挡错位。
-- `06-player-landscape`：截图里控件侧躺 —— 是 `simctl io screenshot` 只拍竖屏 buffer 的已知现象，**不是布局问题**，真机仍需确认三块是否真等高。
-
----
-
-## 二、本次改动做完了什么
-
-### 设计系统
-- `Support/Palette.swift`：换成原型色板（背景 `#0A0A0B`、系统蓝 `#0A84FF`、三级文字灰阶、`#FF453A` 危险色）。
-- `Support/Glass.swift`：**四层玻璃配方**（`.ultraThinMaterial` → 渐变染色 → 0.75pt 上亮下暗描边 → 外投影）。三种预设：`.control`（按钮/胶囊）、`.panel`（菜单/抽屉）、`.subtle`。
-  - 用法：`.glass(Circle())` / `.glass(cornerRadius: 20)`。
-  - **注意**：没有用 iOS 26 的 `glassEffect`。原因是它需要 Xcode 26 工具链，而 CI 跑在 `macos-15` 上不稳定；我们的原型本来就是自定义暗色玻璃，用 Material 能 1:1 还原，部署目标仍是 iOS 17。
-
-### 资料库页（`Views/LibraryView.swift`）
-- 顶栏：左齿轮、中间 17pt 标题、右侧导入 + ⋯，四个 36pt 圆键，高 54，左右 16。
-- 双列网格，卡片间距 18/12；缩略图 16:9、圆角 12；标题 15pt/600 单行；副标题 `时长 · 体积`（时长异步从 AVAsset 读，带缓存）。
-- 缩略图右下角 22pt 已看角标（`.ultraThinMaterial` + 白描边）；手动标记后进度条自动隐藏。
-- **长按菜单**（`Views/LibraryMenus.swift` 的 `CardMenu`）：锚定被长按卡片的左下角，宽度 174（= 卡片宽度），圆角 18，行高 42；顶部只有一行 12.5pt 文件名；「标记已看 / 重命名」一组，「删除」红色单独一组。
-  - 遮罩 38% 压暗，**被长按的卡片浮在遮罩之上**（重画一份在原位置）。
-  - 卡片在屏幕下半部分时菜单自动翻到上方。
-- 导入菜单（200 宽，白圆底图标）与「⋯」菜单（200 宽）：新建文件夹 / 排序三选一（最近播放·名称·添加日期）/ 升序降序 / 刷新缩略图。
-- 文件夹以卡片形式排在视频前面（原型里没有文件夹，为了能进得去，做成了第一列卡片）。
-- 重命名**真的改磁盘文件名**，并把播放记录/已看标记迁移到新 id；失败（同名）会提示。
-
-### 播放页（`Views/PlayerScreen.swift` + `Views/PlayerPanels.swift`）
-- 点屏唤出控件，播放中 4 秒淡出，暂停常驻。
-- 竖屏：无底进度条（4pt，两端 已播 / 剩余）+ 运输胶囊（50 高）+ 两个 50 圆键。
-- 横屏：**三个功能区高度统一 50**、圆角 25、间距 12、贴边 16 —— 运输胶囊 / 进度条胶囊（轨道+时间都装在里面）/ 列表与设置两个圆键。
-- 右侧两个抽屉：播放列表（竖屏 264 / 横屏 320，当前项蓝框 + 波形图标）、播放设置（倍速 −/+ 步进 0.25、模式三选一、画面比例三选一、屏幕常亮）。
-- **抽屉展开时整层控件收起**（进度条、运输键、右上角按钮全部不渲染），只剩画面 + 抽屉。
-- **倍速与模式只在本次播放有效**：存在 `PlayerScreen` 这一层，切集不丢，退出播放页即丢。
-- 右上角圆形键：抓当前帧存相册（`Support/FrameGrabber.swift`，需要 `NSPhotoLibraryAddUsageDescription`，已加到 Info.plist）。
-- 手势保留：左右滑调进度、左半屏上下滑亮度、右半屏音量、长按 2× 快进、双击左右 10 秒。
-
-### 播放逻辑
-- 播放模式：单集循环 / 列表循环（到底回到第一个）/ 播完暂停。
-- 已移除：画中画（`PiPManager.swift` 已删除）、音轨菜单、整条音轨选择逻辑。
-
-### 工程 / CI
-- `.github/workflows/ios-ipa.yml` 加了两个东西：
-  1. **编译失败时把 `error:` 行做成 annotation**，这样不用登录也能在 Checks 里看到报错原文。
-  2. **把模拟器截图强推到一个 `ci-shots` 分支**，方便直接 `raw.githubusercontent.com/.../ci-shots/02-home.png` 看图。
-- `DebugSeed` 补了 4 段根目录示例视频，首页截图能看到「文件夹卡片 + 视频网格」。
-
----
-
-## 三、接下来要做的（按优先级）
-
-### P0 · 必须先做
-1. **真机装一次**：下载 `LocalPlayer-unsigned.ipa`，用 Sideloadly 签名装机（免费账号 7 天有效），确认：
-   - 相册/文件导入 → 网格出现缩略图
-   - 长按菜单三项都能用
-   - **横屏播放：三块功能区是否真的等高**（模拟器截图看不出）
-   - 两个抽屉、截图存相册、长按 2×、双击 ±10 秒不抢事件
-2. **重命名交互确认**：现在是「改磁盘文件名」。如果想改成「只改显示名」（更安全，不会因为同名失败），需要加一个 `displayNames` 字典到 UserDefaults，改 `VideoItem.displayName` 的取值来源。
-
-### P1 · 收尾
-3. ~~更新 README.md / DESIGN.md~~ ✅ 2026-11-11 已完成
-4. ~~删掉 `DebugSeed.seedProgressIfNeeded()` 的伪数据~~ ✅ 已完成
-5. ~~清理 `.ci/`~~ — 该目录在交接包里已不存在
-6. 删掉 `preview/shots/` 里 4 张旧原型图（可选，只是体积）
-
-### P2 · 以后想加再说
-7. ~~排序里补「文件大小」~~ ✅ 2026-11-11 已完成（排序变四选一）
-8. ~~播放设置里的「防误触 / 自动隐藏时长」~~ ✅ 已完成（已随播放页改版搬进设置页「播放界面」）；**「锁定方向」仍未做**
-9. ~~文件夹重命名 / 删除~~ ✅ 已完成（重命名**只改显示名**，磁盘目录名不动）
-10. ~~长按菜单加「移到其他文件夹」~~ ✅ 已完成（`MoveFolderSheet`，含层级缩进与「当前」标记）
-
-### P3 · 播放页按参考图改版（2026-11-11 晚）
-11. ✅ 播放页重排：左上关闭 / 右上列表 / 正中三圆（等大 58–62）/ 底部通栏进度条 / 右下倍速键
-12. ✅ 播放设置抽屉删除，三项（屏幕常亮 / 自动隐藏 / 启动时锁定）并入设置页「播放界面」；新增「默认画面」
-13. ✅ 倍速改成右下角窄浮层（110 宽）+ 五档直选，删掉 0.75 / 1.75
-14. ✅ 抓帧存相册、音量胶囊按参考图从播放页移除（`FrameGrabber` 代码保留，未接线）
-15. ✅ 长按保持 2× 快进；**不做**「长按 2 秒锁定」，防误触只走设置里的「启动时锁定」
-
-### 2026-11-11 晚追加的改动
-
-- 排序新增「文件大小」（同大小按名称排）
-- 播放设置新增「自动隐藏」2/4/6 秒（存 `AppSettings.autoHideDelay`）与「防误触」（锁屏后长按 1 秒解除）
-- 文件夹长按菜单：重命名（显示名，存 `folder.displayNames.v1`）、删除（递归删目录 + 先清里面视频的进度记录）
-- 视频长按菜单新增「移到文件夹」，移动后把进度/已看迁到新 ID
-- 顺手修了 `ts`/`m2ts` 被误标为「可播」的问题
-
----
-
-## 四、怎么继续开发
-
-### 方式 A：本地 Xcode（推荐，改一次看一次）
 ```bash
-brew install xcodegen
-cd LocalPlayer
-xcodegen generate          # 生成 LocalPlayer.xcodeproj
-open LocalPlayer.xcodeproj # 选自己的 iPhone，⌘R
+git clone https://github.com/loinz-Max/localplayer.git
+cd localplayer
 ```
-- 需要 macOS + Xcode 15 以上（部署目标 iOS 17）。
-- `project.yml` 是工程描述文件，**改了文件增删要重新 `xcodegen generate`**。
 
-### 方式 B：GitHub Actions 云端编译（不用 Mac）
-- push 到 `main` 自动触发；也可以在 Actions 页面手动 Run workflow。
-- 产出两个 artifact：`simulator-screenshots`（截图）、`LocalPlayer-unsigned-ipa`（装机用 ipa）。
-- 截图还会自动推到 `ci-shots` 分支，网页上直接能看。
+1. **先读两个文件**：本文件（进度 + 坑）和 `DESIGN.md`（界面规格；唯一设计真相是 `preview/ui-v*.html`）。
+2. **看效果不用 Mac**：`ci-shots` 分支里是最新模拟器截图 → <https://github.com/loinz-Max/localplayer/tree/ci-shots>；ipa 在 Actions 页的 Artifacts 里。
+3. **要改代码**：先确认推送权限，见第 1 节。
+4. **在 WorkBuddy 里开工**直接说：
 
-### 换电脑 / 换 GitHub 账号
-1. 解压这个 zip 到新电脑。
-2. 当前 `origin` 指向 `https://github.com/loinz-Max/localplayer.git`，本机凭据由 Git Credential Manager 管理（已存 `loinz-Max`）。换账号时先清掉旧凭据：Windows「凭据管理器 → Windows 凭据」删掉 `git:https://github.com`，再 push 会重新弹窗登录。
-3. 如果沿用旧仓库：`git remote set-url origin <新仓库地址>`；如果是新账号新建仓库：
-   ```bash
-   cd LocalPlayer
-   rm -rf .git                 # 想丢掉旧历史才这么做，否则跳过
-   git init && git add -A && git commit -m "init"
-   git remote add origin https://github.com/<新账号>/<新仓库>.git
-   git push -u origin main
-   ```
-4. **新仓库第一次跑 Actions 要注意**：Settings → Actions → General → Workflow permissions 选 **Read and write**，否则「把截图推到 ci-shots 分支」那步会失败（不影响编译，只是看不到截图）。
-5. 想换 bundle id：改 `project.yml` 里的 `PRODUCT_BUNDLE_IDENTIFIER`。
+   > 读 LocalPlayer 仓库的 HANDOVER.md 和 DESIGN.md，接着做第 7 节的待办。
+
+> 不需要的东西：本机不需要 Xcode（CI 用 macos-15 编译）、不需要 Apple 开发者账号（免费号自签即可）、App 本身完全离线。
 
 ---
 
-## 五、文件地图
+## 1. 仓库与权限（换个 GitHub 账号还能不能改？）
+
+**仓库是 public**：任何人（哪怕没登录）都能看代码、看提交历史、看 `ci-shots` 截图、clone、fork。
+但 **push 只对 owner 和 collaborator 开放**。
+
+明天用另一个 GitHub 账号，三条路：
+
+| 方式 | 你要做什么 | 代价 |
+|---|---|---|
+| **A. 加成协作者**（最省事） | 今天先在 `loinz-Max` 账号下：仓库 → Settings → Collaborators → Add people → 填新账号用户名 → 明天用新账号接受邀请 | 需要今天能登 `loinz-Max`；新账号立刻有 push 权限 |
+| **B. Fork + Pull Request** | 明天用新账号 Fork → 在自己 fork 上改 → 提 PR；合并仍需 `loinz-Max` | 不用邀请，但每次要走 PR |
+| **C. 直接登 loinz-Max** | 明天那台电脑用 `loinz-Max` 登录（密码或 PAT） | 一个账号走到底，最不容易乱 |
+
+**其它注意**
+
+- 想改私有：Settings → General → 最下方 Change visibility。私有后 Actions 免费额度 2000 分钟/月，`ci-shots` 截图链接也不再公开。
+- Windows 上凭据存在「凭据管理器 → `git:https://github.com`」，**换账号要先删掉这条**，否则一直用旧账号推（会 403）。
+- 新账号 push 报 `403`，基本就是「登录的账号对这个仓库没有写权限」。
+
+---
+
+## 2. 当前进度
+
+| 阶段 | 状态 | 证据 |
+|---|---|---|
+| 界面原型 v3（资料库 / 抽屉 / 设置，10 屏） | ✅ 定稿 | `preview/ui-v3.html` |
+| 播放页改版原型 v5（竖 / 横 / 倍速面板 / 设置页） | ✅ 定稿 | `preview/ui-v5-player.html` |
+| SwiftUI 实现 | ✅ 编译通过 | run `43043048757` |
+| 模拟器截图视觉校对 | ✅ 已做 3 轮 | `ci-shots` 分支 10 张图 |
+| 真机安装试用 | ⏳ **只差这一步** | 见第 6 节清单 |
+| 文档同步（README / DESIGN / HANDOVER） | ✅ 持续更新 | — |
+
+**做过的事（按时间）**
+
+1. 按原 v3 原型重写全部界面（玻璃配方、双列网格、长按菜单、右侧抽屉）。
+2. 收尾：README / DESIGN 重写、删伪造的「继续观看」数据、`ts/m2ts` 移出可播白名单、设置键名收进 `AppSettings.Key`。
+3. P2 功能：排序加「文件大小」、防误触 / 自动隐藏时长、文件夹重命名（只改显示名）/ 删除、视频「移到文件夹」。
+4. **播放页按参考图改版**：顶栏只留关闭与列表、中部三圆等大（竖 58 / 横 62）、底部通栏进度条、右下倍速键 + 110 宽窄浮层（五档）。播放设置抽屉整体删除，三项设置移进 App 设置页「播放界面」，并新增「默认画面」。
+5. **修 bug**：外部写入（爱思助手 / 文件 App / AFC）的文件路径带 `/private` 前缀，导致 `folder` 算错 → 设置里数得到、列表里看不到。同时补了目录监听、回前台重扫、下拉刷新。
+
+---
+
+## 3. 代码地图
 
 ```
 LocalPlayer/
-├─ project.yml                      XcodeGen 工程描述（部署目标 iOS 17.0）
-├─ Info.plist                       含相册读取 + 相册写入两条用途说明
-├─ .github/workflows/ios-ipa.yml    云端编译 + 模拟器截图 + 失败取错误
-├─ preview/ui-v3.html               ★ 界面原型（10 屏，唯一的设计真相）
-├─ scripts/dev.sh                   本地构建小脚本
-└─ LocalPlayer/
-   ├─ App/LocalPlayerApp.swift      入口
-   ├─ Models/VideoItem.swift        VideoItem / SortKey / PlayMode
-   ├─ Player/
-   │  ├─ PlayerModel.swift          AVPlayer 封装（已去掉音轨）
-   │  └─ VideoSurface.swift         AVPlayerLayer 包装
-   ├─ Services/
-   │  ├─ AppSettings.swift          默认倍速 / 播放模式 / 排序 / 续播
-   │  ├─ LibraryStore.swift         扫描、导入、删除、重命名
-   │  ├─ ProgressStore.swift        进度 + 最近播放顺序 + 已看标记
-   │  ├─ ThumbnailLoader.swift      缩略图缓存 + 时长缓存
-   │  └─ PhotoImporter.swift        相册导入
-   ├─ Support/
-   │  ├─ Palette.swift              色板
-   │  ├─ Glass.swift                ★ 四层玻璃配方 + 圆键
-   │  ├─ FrameGrabber.swift         抓帧存相册
-   │  ├─ Formatters.swift / ScreenBrightness.swift / SystemVolume.swift
-   │  └─ DebugSeed.swift            仅 Debug：生成示例视频
-   └─ Views/
-      ├─ LibraryView.swift          资料库页（网格 + 长按 + 弹窗）
-      ├─ LibraryMenus.swift         三个菜单的实现
-      ├─ Cards.swift                卡片 / 角标 / 缩略图
-      ├─ PlayerScreen.swift         播放页（控制层 + 手势 + 抽屉调度）
-      ├─ PlayerPanels.swift         两个抽屉
-      └─ SettingsView.swift         设置页
+├─ App/LocalPlayerApp.swift          入口、EnvironmentObject 注入
+├─ Models/VideoItem.swift            条目模型；relativePath 兼容 /private 前缀（重要）
+├─ Player/
+│  ├─ PlayerModel.swift              AVPlayer 封装：时间轴 / 倍速 / 缓冲 / 失败态
+│  └─ VideoSurface.swift             UIViewRepresentable 包 AVPlayerLayer
+├─ Services/
+│  ├─ LibraryStore.swift             扫描 Documents、导入/删除/重命名/移动、目录监听
+│  ├─ ProgressStore.swift            进度 / 已看 / 最近播放（UserDefaults 单键快照）
+│  ├─ AppSettings.swift              所有设置项 + 键名枚举 + 播放页用的静态读取
+│  ├─ ThumbnailLoader.swift          缩略图（取第 5 秒帧）+ 时长缓存
+│  └─ PhotoImporter.swift            相册导入（转存沙盒，命名 日期_序号）
+├─ Views/
+│  ├─ LibraryView.swift              资料库：网格 / 菜单 / 弹窗 / 导入 / 下拉刷新
+│  ├─ Cards.swift                    视频卡片、文件夹卡片、缩略图
+│  ├─ LibraryMenus.swift             长按菜单、导入菜单、更多菜单、移到文件夹
+│  ├─ PlayerScreen.swift             播放页：顶栏 / 三圆 / 进度条 / 倍速浮层 / 手势 / 锁定
+│  ├─ PlayerPanels.swift             播放列表抽屉 + 倍速面板
+│  └─ SettingsView.swift             设置页（播放 / 播放界面 / 存储 / 关于）
+├─ Support/                          Glass（玻璃配方）、Palette（色板）、Fmt、DebugSeed 等
+preview/ui-v3.html                   资料库与整体结构原型
+preview/ui-v5-player.html            播放页改版原型（含设置页）
+scripts/dev.sh                       本机 Mac 一键跑模拟器
+scripts/push-api.js                  git 通道被代理挡住时的推送兜底（见第 5 节）
+project.yml                          XcodeGen 工程描述（部署目标 iOS 17）
 ```
 
 ---
 
-## 六、待你拍板的两件事
+## 4. 怎么编译 / 怎么出包
 
-1. **重命名**：改磁盘文件名（现状）还是只改显示名？
-2. **弹窗尺寸**：200 宽 / 44 行高 是否偏小？（原型阶段问过一次，你还没回）
+**有 Mac**
+
+```bash
+brew install xcodegen
+xcodegen generate
+open LocalPlayer.xcodeproj      # ⌘R
+# 或者： scripts/dev.sh "iPhone 16"
+```
+
+**没 Mac（现在走的就是这条路）**
+
+push 到 `main` 会自动触发 `.github/workflows/ios-ipa.yml`，两个 job：
+
+- `模拟器截图`：跑 10 屏截图 → 推到 `ci-shots` 分支（不登录也能看）
+- `打包未签名 ipa`：产物名 `LocalPlayer-unsigned-ipa`，在 run 页面最下方 Artifacts 下载
+
+**装机**：ipa 未签名，用爱思助手「工具箱 → IPA 签名」签一次（填 Apple ID；开了双重认证的号用 App 专用密码），再安装。装完在 设置 → 通用 → VPN 与设备管理 里信任证书；iOS 16+ 再开「开发者模式」。
+
+**新仓库第一次跑 Actions 必须做**：Settings → Actions → General → Workflow permissions 选 **Read and write**，否则推 `ci-shots` 会失败（编译不受影响，只是看不到截图）。
+
+---
+
+## 5. 踩过的坑（省点排查时间）
+
+| 现象 | 原因 / 处理 |
+|---|---|
+| `git push` 报 `CONNECT tunnel failed, response 502` / `schannel: server closed` | 本机代理挡了 `github.com` 的 git 传输。`api.github.com` 正常，可 `node scripts/push-api.js` 走 Git Data API 推（用法见文件头注释） |
+| `raw.githubusercontent.com` 502 | 同样被代理挡。改用 `api.github.com/repos/.../contents/<path>?ref=<branch>` 取 base64 解码 |
+| 设置里数得到视频、列表里不显示 | 已修：外部写入路径带 `/private` 前缀，`folder` 算错。关键是 `VideoItem.relativePath(of:in:)` 按前缀匹配 |
+| 从爱思 / 文件 App 拷完文件，App 里没反应 | 已修：`LibraryStore` 监听 Documents 目录 + `scenePhase` 回前台重扫 + 下拉刷新 |
+| 截图里播放键后面有个大白圆 | 不是 UI，是 `DebugSeed` 生成的示例视频里那枚「缓慢右移的圆」 |
+| CI 报 runner 分配失败 | macOS runner 容量问题，重新触发即可，不是代码问题 |
+| 横屏截图内容旋转 90° | `simctl io screenshot` 只拍竖屏 buffer 的已知现象，不代表真机有问题 |
+
+---
+
+## 6. 明天第一件事：真机验收清单
+
+装上最新 ipa 后按顺序过一遍，有问题记下来（附截图）：
+
+- [ ] 启动后能列出视频；**下拉能刷新**；从爱思推文件后切回 App 会自动出现
+- [ ] 播放页：三圆等大且居中；进度条通栏、两端时间对齐
+- [ ] 右下倍速键点开 → 面板贴在键上方、不压中部控件；选档后数字跟着变
+- [ ] 列表抽屉：展开时控件收起；点其他集能切
+- [ ] **横屏**：三圆位置、进度条、倍速面板是否都正常（模拟器验不出来）
+- [ ] 手势：横滑调进度、左半屏亮度、右半屏音量、双击左右 ±10 秒、**长按 2× 快进**（松手恢复）
+- [ ] 设置里「启动时锁定」打开后，进播放页是否锁上，长按画面 1 秒能否解除
+- [ ] 导入到子文件夹后，面包屑与「回到资料库」是否正常
+
+---
+
+## 7. 待办（按优先级）
+
+1. **真机验收**：把第 6 节清单跑一遍。
+2. **bundle id 改唯一**：现在是 `com.example.localplayer`，免费证书撞车会报「App ID 不可用」。建议改成 `com.loinzmax.localplayer`（改 `project.yml` 的 `PRODUCT_BUNDLE_IDENTIFIER` 后重跑 CI）。
+3. **锁定方向**：设置里的「锁定竖屏 / 横屏」还没做（原原型有，一直挂起）。
+4. **iOS 16 兼容**（可选）：当前部署目标 17.0；要在旧机装需降到 16，并给 `MagnifyGesture`、`requestGeometryUpdate` 加可用性判断。
+5. **抓帧存相册**：代码（`FrameGrabber.swift`）还在，只是按钮按参考图从播放页移除了。想加回来放顶栏或长按菜单都行。
+6. 其它细节：菜单 200 宽 / 44 行高是否偏小（一直没定）。
+
+---
+
+## 8. 设计约定的几条硬规则
+
+- **原型即真相**：`preview/ui-v3.html`（资料库）+ `preview/ui-v5-player.html`（播放页）。改界面前先改原型，再改 SwiftUI。
+- **倍速 / 播放模式只在本次播放有效**：存在 `PlayerScreen` 层，切集不丢、退出即丢。设置页里的「默认值」只是起点。
+- **文件夹重命名只改显示名**：磁盘目录名不动，否则里面视频的 id（相对路径）、进度、已看记录全要重写。
+- **视频重命名改磁盘文件名**：文件名 = id，改名后自动迁移进度与已看标记。
+- **不支持格式仍显示在列表**，带警告图标，点开才提示转码。
+- **零第三方依赖**，不联网、不上传。

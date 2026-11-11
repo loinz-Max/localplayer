@@ -4,9 +4,10 @@
 
 视频只存在 App 的 `Documents` 目录里，不联网、不登录、不上传任何服务器。
 
-- 仓库：<https://github.com/loinz-Max/localplayer>
-- 界面原型（设计唯一真相）：`preview/ui-v3.html`，直接双击用浏览器打开；加 `?only=3` 只看第 4 屏
-- 设计说明：`DESIGN.md` ｜ 交接记录：`HANDOVER.md`
+- 仓库：<https://github.com/loinz-Max/localplayer>（public）
+- **第一次接手先读 `HANDOVER.md`**：进度、权限、待办、踩过的坑都在里面
+- 界面原型（设计唯一真相）：`preview/ui-v3.html`（资料库）+ `preview/ui-v5-player.html`（播放页），直接双击用浏览器打开；都支持 `?only=` 单屏查看
+- 设计说明：`DESIGN.md`
 - 规模：22 个 Swift 文件，约 3600 行；部署目标 iOS 17.0
 
 ---
@@ -117,6 +118,7 @@ LocalPlayer/
 ├─ preview/ui-v3.html               ★ 界面原型（10 屏，唯一的设计真相）
 ├─ preview/shots/                   原型效果图（非真实截图）
 ├─ scripts/dev.sh                   本地一键：生成工程 → 编译 → 装机 → 带数据启动
+├─ scripts/push-api.js              git 被代理挡住时，改用 Git Data API 推送
 └─ LocalPlayer/
    ├─ App/LocalPlayerApp.swift      入口，注入三个 store，配 AVAudioSession
    ├─ Models/VideoItem.swift        VideoItem / SortKey / PlayMode
