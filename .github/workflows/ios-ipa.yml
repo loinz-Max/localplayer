@@ -105,6 +105,10 @@ jobs:
           # 横屏播放：这才是实际看片时的形态
           snap 06-player-landscape "-screen player -keepChrome 1 -landscape 1" 4
           snap 05-settings "-screen settings"
+          # 新增界面：文件夹长按菜单、移到文件夹弹窗、播放设置抽屉
+          snap 07-folder-menu "-screen foldermenu -seedDemo 1" 5
+          snap 08-move-sheet "-screen move -seedDemo 1" 5
+          snap 09-player-settings "-screen player -panel settings -keepChrome 1" 5
 
           ls -lh shots
 

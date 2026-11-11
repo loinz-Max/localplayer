@@ -765,6 +765,12 @@ private struct PlayerCore: View {
         showChrome(persistent: false)
         #if DEBUG
         DebugSeed.forceLandscapeIfRequested()
+        // 截图用：直接展开某个抽屉，省得截图脚本去点按钮
+        if let which = DebugSeed.argument(after: "-panel") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                openPanel(which == "settings" ? .settings : .queue)
+            }
+        }
         #endif
     }
 

@@ -749,6 +749,19 @@ struct LibraryView: View {
                 if let first = library.subfolders.first { library.currentFolder = first }
             case "settings":
                 showSettings = true
+            case "foldermenu":
+                // 等卡片布局完成、folderFrames 有值之后再弹菜单，否则锚点是 .zero
+                if let first = library.subfolders.first {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        openFolderMenu(first)
+                    }
+                }
+            case "move":
+                if let first = library.allItems.first {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        movingItem = first
+                    }
+                }
             default:
                 break
             }

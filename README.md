@@ -155,6 +155,9 @@ LocalPlayer/
 | 参数 | 作用 |
 |---|---|
 | `-screen home\|folder\|player\|settings\|empty` | 启动后直达某一屏 |
+| `-screen foldermenu` | 直达首页并弹出第一个文件夹的长按菜单 |
+| `-screen move` | 直达首页并弹出「移到文件夹」弹窗 |
+| `-panel settings\|queue` | 进播放页后直接展开对应抽屉（截图用） |
 | `-seedDemo 1` | 现场生成 8 段 8 秒示例视频（4 段在「示例视频」文件夹，4 段在根目录） |
 | `-keepChrome 1` | 钉住播放控制栏，否则 4 秒后自动隐藏，截图拍不到 |
 | `-landscape 1` | 调 `requestGeometryUpdate` 真的把 App 转到横屏 |
