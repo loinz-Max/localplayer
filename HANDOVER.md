@@ -12,7 +12,11 @@
 ```bash
 git clone https://github.com/loinz-Max/localplayer.git
 cd localplayer
+git config user.name  "hayatlia58-blip"
+git config user.email "你的 GitHub 邮箱"
 ```
+
+> **第二天必须做的第一件事**：用 `hayatlia58-blip` 打开 <https://github.com/loinz-Max/localplayer/invitations> 接受协作者邀请，否则 push 会 403。
 
 1. **先读两个文件**：本文件（进度 + 坑）和 `DESIGN.md`（界面规格；唯一设计真相是 `preview/ui-v*.html`）。
 2. **看效果不用 Mac**：`ci-shots` 分支里是最新模拟器截图 → <https://github.com/loinz-Max/localplayer/tree/ci-shots>；ipa 在 Actions 页的 Artifacts 里。
@@ -37,9 +41,12 @@ cd localplayer
 
 | 方式 | 你要做什么 | 代价 |
 |---|---|---|
-| **A. 加成协作者**（最省事） | 今天先在 `loinz-Max` 账号下：仓库 → Settings → Collaborators → Add people → 填新账号用户名 → 明天用新账号接受邀请 | 需要今天能登 `loinz-Max`；新账号立刻有 push 权限 |
-| **B. Fork + Pull Request** | 明天用新账号 Fork → 在自己 fork 上改 → 提 PR；合并仍需 `loinz-Max` | 不用邀请，但每次要走 PR |
-| **C. 直接登 loinz-Max** | 明天那台电脑用 `loinz-Max` 登录（密码或 PAT） | 一个账号走到底，最不容易乱 |
+| **A. 协作者权限**（已办好，只剩接受） | 2026-11-11 23:19 已向 **`hayatlia58-blip`** 发出 write 权限邀请。明天登这个账号后打开 <https://github.com/loinz-Max/localplayer/invitations> 点 Accept 即可直接 push | 无需再操作仓库设置 |
+| **B. Fork + Pull Request** | 用别的账号 Fork → 在自己 fork 上改 → 提 PR；合并仍需 `loinz-Max` | 不用邀请，但每次要走 PR |
+| **C. 直接登 loinz-Max** | 那台电脑用 `loinz-Max` 登录（密码或 PAT） | 一个账号走到底，最不容易乱 |
+
+> 邀请没接受之前，`hayatlia58-blip` 对仓库只有「public 仓库的路人权限」：能 clone、能 fork，不能 push。
+> 接受后 GitHub 会发通知，权限立即生效。
 
 **其它注意**
 
