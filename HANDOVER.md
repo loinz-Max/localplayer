@@ -22,6 +22,9 @@ cd localplayer
    > 读 LocalPlayer 仓库的 HANDOVER.md 和 DESIGN.md，接着做第 7 节的待办。
 
 > 不需要的东西：本机不需要 Xcode（CI 用 macos-15 编译）、不需要 Apple 开发者账号（免费号自签即可）、App 本身完全离线。
+>
+> ⚠️ WorkBuddy 的会话记忆跟着账号走，换了 WorkBuddy 账号或电脑就读不到上一轮的聊天记录。
+> 所以**凡是后续要用的信息都写进了本文件**，别指望会话记忆。
 
 ---
 
