@@ -38,6 +38,8 @@ struct LibraryView: View {
 
     @State private var popup: LibraryPopup?
     @State private var target: CardTarget?
+    /// 长按刚触发时，同一串手势不要再被当成「点空白关闭」
+    @State private var menuGuard = Date.distantPast
     @State private var cardFrames: [String: CGRect] = [:]
     /// 刷新缩略图时递增，用来强制 LazyVGrid 重建、重新生成缩略图
     @State private var refreshToken = 0
@@ -285,7 +287,7 @@ struct LibraryView: View {
         }
         .onTapGesture {
             if target != nil {
-                closeCardMenu()
+                if Date().timeIntervalSince(menuGuard) > 0.35 { closeCardMenu() }
             } else {
                 playingItem = item
             }
@@ -332,6 +334,7 @@ struct LibraryView: View {
             .ignoresSafeArea()
             .transition(.opacity)
             .onTapGesture {
+                guard Date().timeIntervalSince(menuGuard) > 0.35 else { return }
                 closeCardMenu()
                 popup = nil
             }
@@ -384,6 +387,7 @@ struct LibraryView: View {
 
     private func openCardMenu(_ item: VideoItem) {
         popup = nil
+        menuGuard = Date()
         let rect = cardFrames[item.id] ?? .zero
         withAnimation(.easeOut(duration: 0.16)) {
             target = CardTarget(item: item, rect: rect)
