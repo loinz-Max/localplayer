@@ -12,6 +12,9 @@ final class AppSettings: ObservableObject {
         static let sortKey = "sortKey"
         static let sortAscending = "sortAscending"
         static let autoHideDelay = "autoHideDelay"
+        static let defaultGravity = "defaultGravity"
+        static let keepAwake = "keepAwake"
+        static let lockOnStart = "lockOnStart"
     }
 
     private let d = UserDefaults.standard
@@ -66,6 +69,24 @@ final class AppSettings: ObservableObject {
         get { read(Key.autoHideDelay, 4.0) }
         set { write(Key.autoHideDelay, newValue) }
     }
+
+    /// 默认画面：0 适应 / 1 填充 / 2 拉伸
+    var defaultGravity: Int {
+        get { read(Key.defaultGravity, 0) }
+        set { write(Key.defaultGravity, newValue) }
+    }
+
+    /// 播放时屏幕常亮
+    var keepAwake: Bool {
+        get { read(Key.keepAwake, true) }
+        set { write(Key.keepAwake, newValue) }
+    }
+
+    /// 防误触：进播放页就锁上控件，长按画面 1 秒解除
+    var lockOnStart: Bool {
+        get { read(Key.lockOnStart, false) }
+        set { write(Key.lockOnStart, newValue) }
+    }
 }
 
 // MARK: - 播放页的初始值
@@ -81,5 +102,9 @@ extension AppSettings {
         let raw = (UserDefaults.standard.object(forKey: Key.defaultPlayMode) as? String)
             ?? PlayMode.loopAll.rawValue
         return PlayMode(rawValue: raw) ?? .loopAll
+    }
+
+    static func storedGravity() -> Int {
+        (UserDefaults.standard.object(forKey: Key.defaultGravity) as? Int) ?? 0
     }
 }

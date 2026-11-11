@@ -12,7 +12,8 @@ struct PlayerScreen: View {
     /// 倍速与模式只在本次播放有效：放在这一层，切集不丢，退出播放页即丢
     @State private var rate: Double
     @State private var mode: PlayMode
-    @State private var panel: PlayerPanel?
+    /// 播放列表抽屉开着就去切集，切完仍然开着（与之前一致）
+    @State private var queueOpen = false
 
     @Environment(\.dismiss) private var dismiss
 
@@ -30,7 +31,7 @@ struct PlayerScreen: View {
             queue: queue,
             rate: $rate,
             mode: $mode,
-            panel: $panel,
+            queueOpen: $queueOpen,
             onClose: { dismiss() },
             onAdvance: { next in
                 if let next {
@@ -64,7 +65,7 @@ private struct PlayerCore: View {
     let queue: [VideoItem]
     @Binding var rate: Double
     @Binding var mode: PlayMode
-    @Binding var panel: PlayerPanel?
+    @Binding var queueOpen: Bool
     var onClose: () -> Void
     var onAdvance: (VideoItem?) -> Void
 
@@ -76,9 +77,11 @@ private struct PlayerCore: View {
 
     @State private var chromeVisible = true
     @State private var hideToken = 0
-    @State private var gravityIndex = 0
-    @State private var keepAwake = true
+    @State private var speedOpen = false
     @State private var toastText: String?
+
+    /// 画面比例：本次播放内有效
+    @State private var gravityIndex: Int
 
     /// 防误触：锁上后除了「长按 1 秒解除」以外的所有触摸都不响应
     @State private var touchLocked = false
@@ -94,6 +97,7 @@ private struct PlayerCore: View {
     @State private var volumeStart: Float = 0
 
     @State private var boosting = false
+
     @State private var scrubFraction: Double?
     @State private var isScrubbing = false
 
@@ -106,7 +110,7 @@ private struct PlayerCore: View {
         queue: [VideoItem],
         rate: Binding<Double>,
         mode: Binding<PlayMode>,
-        panel: Binding<PlayerPanel?>,
+        queueOpen: Binding<Bool>,
         onClose: @escaping () -> Void,
         onAdvance: @escaping (VideoItem?) -> Void
     ) {
@@ -114,15 +118,18 @@ private struct PlayerCore: View {
         self.queue = queue
         _rate = rate
         _mode = mode
-        _panel = panel
+        _queueOpen = queueOpen
         self.onClose = onClose
         self.onAdvance = onAdvance
         _model = StateObject(wrappedValue: PlayerModel(item: item, resumeTime: 0, rate: 1))
+        // 画面比例按设置里的默认值起步，本次改不回写设置（保持「本次有效」的约定）
+        _gravityIndex = State(initialValue: AppSettings.storedGravity())
     }
 
     private var isLandscape: Bool { verticalSizeClass == .compact }
 
-    private var showControls: Bool { chromeVisible && panel == nil }
+    /// 抽屉展开时整层控件收起；倍速面板是浮层，控件保持可见
+    private var showControls: Bool { chromeVisible && !queueOpen }
 
     var body: some View {
         ZStack {
@@ -138,20 +145,20 @@ private struct PlayerCore: View {
                     .onLongPressGesture(
                         minimumDuration: 0.35,
                         maximumDistance: 60,
-                        perform: { startBoost() },
+                        perform: { startLongPress() },
                         onPressingChanged: { pressing in
-                            if !pressing { endBoost() }
+                            if !pressing { endLongPress() }
                         }
                     )
                     .simultaneousGesture(magnifyGesture)
             }
             .ignoresSafeArea()
 
-            if panel != nil {
+            if queueOpen {
                 // 抽屉展开时整层控件收起，画面与抽屉互不遮挡
                 Color.black.opacity(0.28)
                     .ignoresSafeArea()
-                    .onTapGesture { closePanel() }
+                    .onTapGesture { closeQueue() }
                     .transition(.opacity)
             }
 
@@ -159,6 +166,8 @@ private struct PlayerCore: View {
                 controlsLayer
                     .transition(.opacity)
             }
+
+            speedPanelLayer
 
             hudLayer
 
@@ -174,18 +183,26 @@ private struct PlayerCore: View {
                 errorLayer(failed)
             }
         }
-        .overlay(alignment: .trailing) { panelLayer }
+        .overlay(alignment: .trailing) { queueLayer }
         .background(Color.black)
         .onAppear { setup() }
         .onDisappear { teardown() }
         .onChange(of: rate) { _, value in
             model.setRate(Float(value))
         }
-        .onChange(of: keepAwake) { _, value in
+        .onChange(of: settings.keepAwake) { _, value in
             UIApplication.shared.isIdleTimerDisabled = value
         }
         .onChange(of: touchLocked) { _, locked in
             if locked { engageLock() }
+        }
+        .onChange(of: queueOpen) { _, open in
+            if open {
+                hideToken += 1
+                speedOpen = false
+            } else if !touchLocked {
+                showChrome(persistent: false)
+            }
         }
         .onChange(of: model.duration) { _, value in
             if !didRestore, value > 0 { restorePosition() }
@@ -221,6 +238,8 @@ private struct PlayerCore: View {
     private func doubleTapGesture(size: CGSize) -> some Gesture {
         SpatialTapGesture(count: 2)
             .onEnded { value in
+                guard !touchLocked else { return }
+                speedOpen = false
                 showChrome(persistent: false)
                 if value.location.x < size.width * 0.35 {
                     model.skip(-10)
@@ -237,6 +256,7 @@ private struct PlayerCore: View {
     private var magnifyGesture: some Gesture {
         MagnifyGesture()
             .onEnded { value in
+                guard !touchLocked else { return }
                 if value.magnification > 1.05 {
                     gravityIndex = 1
                 } else if value.magnification < 0.95 {
@@ -246,10 +266,13 @@ private struct PlayerCore: View {
     }
 
     private func handleDragChanged(_ value: DragGesture.Value, size: CGSize) {
+        guard !touchLocked else { return }
         if dragMode == .none {
             let dx = abs(value.translation.width)
             let dy = abs(value.translation.height)
             guard max(dx, dy) > 6 else { return }
+
+            speedOpen = false
 
             if dx > dy {
                 dragMode = .seek
@@ -310,11 +333,16 @@ private struct PlayerCore: View {
         fadeHUD(after: 0.6)
     }
 
-    private func startBoost() {
-        guard model.isPlaying, panel == nil else { return }
+    /// 长按 = 2× 快进（锁定时不响应）
+    private func startLongPress() {
+        guard !touchLocked, !queueOpen, model.isPlaying, !speedOpen else { return }
         boosting = true
         model.setRate(2)
         flashHUD(HUD(icon: "forward.fill", text: "2× 快进", progress: nil), duration: 6)
+    }
+
+    private func endLongPress() {
+        endBoost()
     }
 
     private func endBoost() {
@@ -325,8 +353,11 @@ private struct PlayerCore: View {
     }
 
     private func handleTap() {
-        if panel != nil {
-            closePanel()
+        guard !touchLocked else { return }
+        if speedOpen {
+            withAnimation(.easeOut(duration: 0.16)) { speedOpen = false }
+        } else if queueOpen {
+            closeQueue()
         } else {
             toggleChrome()
         }
@@ -376,13 +407,13 @@ private struct PlayerCore: View {
         #if DEBUG
         if DebugSeed.argument(after: "-keepChrome") == "1" { return }
         #endif
-        guard !touchLocked else { return }
+        guard !touchLocked, !queueOpen, !speedOpen else { return }
         hideToken += 1
         let token = hideToken
-        guard model.isPlaying, panel == nil else { return }
+        guard model.isPlaying else { return }
         let delay = max(1, settings.autoHideDelay)
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            if hideToken == token, model.isPlaying {
+            if hideToken == token, model.isPlaying, !queueOpen, !speedOpen {
                 withAnimation(.easeInOut(duration: 0.2)) { chromeVisible = false }
             }
         }
@@ -390,10 +421,13 @@ private struct PlayerCore: View {
 
     // MARK: - 防误触
 
-    /// 锁上：收起抽屉与控件，只在开头 2.5 秒提示怎么解锁
+    /// 锁上：收起抽屉、倍速面板与控件，只在开头 2.5 秒提示怎么解锁
     private func engageLock() {
         hideToken += 1
-        withAnimation(.easeOut(duration: 0.2)) { panel = nil }
+        withAnimation(.easeOut(duration: 0.2)) {
+            queueOpen = false
+            speedOpen = false
+        }
         withAnimation(.easeInOut(duration: 0.2)) { chromeVisible = false }
         withAnimation(.easeOut(duration: 0.2)) { lockHintVisible = true }
         hud = nil
@@ -440,134 +474,153 @@ private struct PlayerCore: View {
         .transition(.opacity)
     }
 
-    private func openPanel(_ target: PlayerPanel) {
+    // MARK: - 抽屉 / 倍速
+
+    private func openQueue() {
         hideToken += 1
         withAnimation(.easeOut(duration: 0.22)) {
-            panel = (panel == target) ? nil : target
+            queueOpen.toggle()
             chromeVisible = false
         }
     }
 
-    private func closePanel() {
-        withAnimation(.easeOut(duration: 0.2)) { panel = nil }
+    private func closeQueue() {
+        hideToken += 1
+        withAnimation(.easeOut(duration: 0.2)) { queueOpen = false }
         showChrome(persistent: false)
+    }
+
+    private func toggleSpeed() {
+        hideToken += 1
+        withAnimation(.easeOut(duration: 0.16)) { speedOpen.toggle() }
     }
 
     // MARK: - 控制层
 
     private var controlsLayer: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                GlassIconButton(
-                    systemName: "xmark",
-                    size: 38,
-                    iconSize: 15,
-                    weight: .semibold,
-                    style: .panel
-                ) { onClose() }
-
+        ZStack {
+            VStack(spacing: 0) {
+                topBar
                 Spacer(minLength: 0)
-
-                GlassIconButton(
-                    systemName: "camera",
-                    size: 38,
-                    iconSize: 15,
-                    weight: .semibold,
-                    style: .panel
-                ) { grabFrame() }
             }
-            .padding(.horizontal, isLandscape ? 16 : 20)
-            .padding(.top, isLandscape ? 14 : 8)
+
+            centerTransport
+
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                bottomBar
+            }
+        }
+    }
+
+    private var topBar: some View {
+        HStack(spacing: 10) {
+            GlassIconButton(
+                systemName: "xmark",
+                size: 38,
+                iconSize: 15,
+                weight: .semibold
+            ) { onClose() }
 
             Spacer(minLength: 0)
 
-            bottomBar
+            GlassIconButton(
+                systemName: "list.bullet",
+                size: 38,
+                iconSize: 16,
+                weight: .medium
+            ) { openQueue() }
         }
+        .padding(.horizontal, 20)
+        .padding(.top, isLandscape ? 12 : 6)
     }
 
-    private var bottomBar: some View {
-        Group {
-            if isLandscape {
-                HStack(spacing: 12) {
-                    transportPill
-                    progressPill
-                    panelButton(.queue, icon: "list.bullet")
-                    panelButton(.settings, icon: "slider.horizontal.3")
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
-            } else {
-                VStack(spacing: 12) {
-                    VStack(spacing: 7) {
-                        scrubBar
-                        timesRow
-                    }
-
-                    HStack(spacing: 12) {
-                        transportPill
-                        Spacer(minLength: 8)
-                        panelButton(.queue, icon: "list.bullet")
-                        panelButton(.settings, icon: "slider.horizontal.3")
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 38)
-            }
-        }
-    }
-
-    private var transportPill: some View {
-        HStack(spacing: 0) {
-            pillButton("gobackward.10") {
+    /// 中部三圆：等大、靠图标区分
+    private var centerTransport: some View {
+        let size: CGFloat = isLandscape ? 62 : 58
+        return HStack(spacing: isLandscape ? 30 : 26) {
+            circleButton("gobackward.10", size: size, iconSize: isLandscape ? 27 : 25) {
                 model.skip(-10)
                 flashHUD(HUD(icon: "gobackward.10", text: "-10 秒", progress: nil), duration: 0.8)
             }
-            pillButton(model.isPlaying ? "pause.fill" : "play.fill", width: 56) {
+            circleButton(
+                model.isPlaying ? "pause.fill" : "play.fill",
+                size: size,
+                iconSize: isLandscape ? 26 : 24
+            ) {
                 model.togglePlay()
             }
-            pillButton("goforward.10") {
+            circleButton("goforward.10", size: size, iconSize: isLandscape ? 27 : 25) {
                 model.skip(10)
                 flashHUD(HUD(icon: "goforward.10", text: "+10 秒", progress: nil), duration: 0.8)
             }
         }
-        .frame(height: 50)
-        .glass(Capsule())
     }
 
-    private func pillButton(_ icon: String, width: CGFloat = 46, action: @escaping () -> Void) -> some View {
+    private func circleButton(
+        _ icon: String,
+        size: CGFloat,
+        iconSize: CGFloat,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 20, weight: .medium))
+                .font(.system(size: iconSize, weight: .medium))
                 .foregroundStyle(.white)
-                .frame(width: width, height: 50)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var progressPill: some View {
-        VStack(spacing: 7) {
-            scrubBar
-            timesRow
-        }
-        .padding(.horizontal, 15)
-        .frame(height: 50)
-        .frame(maxWidth: .infinity)
-        .glass(Capsule())
-    }
-
-    private func panelButton(_ target: PlayerPanel, icon: String) -> some View {
-        Button {
-            openPanel(target)
-        } label: {
-            Image(systemName: icon)
-                .font(.system(size: 19, weight: .medium))
-                .foregroundStyle(.white)
-                .frame(width: 50, height: 50)
+                .frame(width: size, height: size)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .glass(Circle())
+        .glass(Circle(), style: .control)
+    }
+
+    private var bottomBar: some View {
+        VStack(alignment: .trailing, spacing: 12) {
+            speedButton
+            progressCapsule
+        }
+        .padding(.horizontal, isLandscape ? 16 : 20)
+        .padding(.bottom, isLandscape ? 16 : 26)
+    }
+
+    private var speedButton: some View {
+        Button {
+            toggleSpeed()
+        } label: {
+            Text(rateText)
+                .font(.system(size: 12.5, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .glass(Circle(), style: .control)
+    }
+
+    private var progressCapsule: some View {
+        HStack(spacing: 11) {
+            Text(Fmt.time(displayTime))
+                .font(.system(size: 12, weight: .medium))
+                .monospacedDigit()
+                .foregroundStyle(.white.opacity(0.92))
+                .fixedSize()
+
+            scrubBar
+
+            Text("-\(Fmt.time(max(0, model.duration - displayTime)))")
+                .font(.system(size: 12, weight: .medium))
+                .monospacedDigit()
+                .foregroundStyle(.white.opacity(0.62))
+                .fixedSize()
+        }
+        .padding(.horizontal, 15)
+        .frame(height: 36)
+        .glass(Capsule(), style: .subtle)
+    }
+
+    private var rateText: String {
+        rate == 1 ? "1×" : "\(String(format: "%g", rate))×"
     }
 
     private var displayTime: Double {
@@ -587,12 +640,18 @@ private struct PlayerCore: View {
             let width = max(geo.size.width, 1)
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.white.opacity(0.24))
+                    .fill(Color.white.opacity(0.26))
                     .frame(height: 4)
 
                 Capsule()
                     .fill(Color.white)
                     .frame(width: width * CGFloat(playFraction), height: 4)
+
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 11, height: 11)
+                    .shadow(color: .black.opacity(0.45), radius: 2, y: 1)
+                    .offset(x: max(0, min(width - 11, width * CGFloat(playFraction) - 5.5)))
             }
             .frame(height: 20)
             .contentShape(Rectangle())
@@ -613,46 +672,38 @@ private struct PlayerCore: View {
         .frame(height: 20)
     }
 
-    private var timesRow: some View {
-        HStack(spacing: 8) {
-            Text(Fmt.time(displayTime))
-                .font(.system(size: 12, weight: .medium))
-                .monospacedDigit()
-                .foregroundStyle(.white.opacity(0.90))
+    // MARK: - 倍速面板
 
-            Spacer(minLength: 0)
-
-            Text("-\(Fmt.time(max(0, model.duration - displayTime)))")
-                .font(.system(size: 12, weight: .medium))
-                .monospacedDigit()
-                .foregroundStyle(.white.opacity(0.55))
+    /// 浮在倍速键上方，右缘与倍速键对齐；宽度只有 110，不遮画面中部
+    @ViewBuilder
+    private var speedPanelLayer: some View {
+        if speedOpen {
+            VStack {
+                Spacer(minLength: 0)
+                HStack {
+                    Spacer(minLength: 0)
+                    SpeedPanel(rate: $rate, isLandscape: isLandscape) {
+                        withAnimation(.easeOut(duration: 0.16)) { speedOpen = false }
+                        scheduleHide()
+                    }
+                }
+            }
+            .padding(.trailing, isLandscape ? 16 : 20)
+            .padding(.bottom, isLandscape ? 116 : 126)
+            .transition(.opacity.combined(with: .scale(scale: 0.94, anchor: .bottomTrailing)))
         }
     }
 
     // MARK: - 抽屉
 
     @ViewBuilder
-    private var panelLayer: some View {
-        if let panel {
-            Group {
-                switch panel {
-                case .queue:
-                    QueuePanel(queue: queue, current: item, isLandscape: isLandscape) { next in
-                        if next.id == item.id {
-                            closePanel()
-                        } else {
-                            onAdvance(next)
-                        }
-                    }
-                case .settings:
-                    SettingsPanel(
-                        isLandscape: isLandscape,
-                        rate: $rate,
-                        mode: $mode,
-                        gravityIndex: $gravityIndex,
-                        keepAwake: $keepAwake,
-                        locked: $touchLocked
-                    )
+    private var queueLayer: some View {
+        if queueOpen {
+            QueuePanel(queue: queue, current: item, isLandscape: isLandscape) { next in
+                if next.id == item.id {
+                    closeQueue()
+                } else {
+                    onAdvance(next)
                 }
             }
             .frame(maxHeight: .infinity, alignment: .top)
@@ -761,14 +812,24 @@ private struct PlayerCore: View {
         pendingResume = settings.resumePlayback ? progress.position(for: item.id) : 0
 
         model.play()
-        UIApplication.shared.isIdleTimerDisabled = keepAwake
+        UIApplication.shared.isIdleTimerDisabled = settings.keepAwake
         showChrome(persistent: false)
+
+        // 防误触预设：进播放页即锁上，长按画面 1 秒解除
+        if settings.lockOnStart {
+            touchLocked = true
+            engageLock()
+        }
         #if DEBUG
         DebugSeed.forceLandscapeIfRequested()
-        // 截图用：直接展开某个抽屉，省得截图脚本去点按钮
+        // 截图用：直接展开某个浮层，省得截图脚本去点按钮
         if let which = DebugSeed.argument(after: "-panel") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                openPanel(which == "settings" ? .settings : .queue)
+                switch which {
+                case "speed": speedOpen = true
+                case "lock": touchLocked = true
+                default: queueOpen = true
+                }
             }
         }
         #endif
@@ -827,18 +888,5 @@ private struct PlayerCore: View {
         let next = index + 1
         if next < queue.count { return queue[next] }
         return wrapping ? queue.first : nil
-    }
-
-    // MARK: - 截图
-
-    private func grabFrame() {
-        FrameGrabber.capture(url: item.url, at: model.currentTime) { result in
-            switch result {
-            case .success:
-                showToast("已存到相册")
-            case .failure(let error):
-                showToast(error.localizedDescription)
-            }
-        }
     }
 }

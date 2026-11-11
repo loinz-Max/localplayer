@@ -7,7 +7,9 @@ struct SettingsView: View {
 
     @State private var cacheCleared = false
 
-    private let rates: [Double] = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+    private let rates: [Double] = [0.5, 1, 1.25, 1.5, 2]
+    private let gravityTitles = ["适应", "填充", "拉伸"]
+    private let autoHideOptions: [Double] = [2, 4, 6]
 
     var body: some View {
         ZStack {
@@ -19,6 +21,7 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(spacing: 16) {
                         playbackSection
+                        interfaceSection
                         storageSection
                         aboutSection
                         Spacer(minLength: 20)
@@ -75,33 +78,28 @@ struct SettingsView: View {
                     .font(.system(size: 14))
                     .foregroundStyle(Palette.text)
 
-                HStack(spacing: 2) {
-                    ForEach(PlayMode.allCases) { mode in
-                        let active = settings.defaultPlayMode == mode
-                        Button {
-                            settings.defaultPlayMode = mode
-                        } label: {
-                            Text(mode.title)
-                                .font(.system(size: 12.5, weight: .medium))
-                                .foregroundStyle(active ? Palette.text : Palette.secondaryText)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 32)
-                                .background {
-                                    if active {
-                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                            .fill(Color.white.opacity(0.16))
-                                    }
-                                }
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
+                SettingsSegment(
+                    titles: PlayMode.allCases.map(\.title),
+                    selected: PlayMode.allCases.firstIndex(of: settings.defaultPlayMode) ?? 0
+                ) { index in
+                    settings.defaultPlayMode = PlayMode.allCases[index]
                 }
-                .padding(3)
-                .background(
-                    RoundedRectangle(cornerRadius: 17, style: .continuous)
-                        .fill(Color.white.opacity(0.06))
-                )
+            }
+            .padding(.vertical, 4)
+
+            divider
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("默认画面")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Palette.text)
+
+                SettingsSegment(
+                    titles: gravityTitles,
+                    selected: min(max(settings.defaultGravity, 0), gravityTitles.count - 1)
+                ) { index in
+                    settings.defaultGravity = index
+                }
             }
             .padding(.vertical, 4)
 
@@ -118,6 +116,61 @@ struct SettingsView: View {
                 }
                 Spacer()
                 Toggle("", isOn: boolBinding(\.resumePlayback))
+                    .labelsHidden()
+                    .tint(Palette.accent)
+            }
+        }
+    }
+
+    // MARK: - 播放界面
+
+    /// 原来播放页抽屉里的三项，现在统一收在这里
+    private var interfaceSection: some View {
+        card(title: "播放界面") {
+            row {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("屏幕常亮")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Palette.text)
+                    Text("播放时不自动熄屏")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Palette.tertiaryText)
+                }
+                Spacer()
+                Toggle("", isOn: boolBinding(\.keepAwake))
+                    .labelsHidden()
+                    .tint(Palette.accent)
+            }
+
+            divider
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("控件自动隐藏")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Palette.text)
+
+                SettingsSegment(
+                    titles: autoHideOptions.map { "\(Int($0)) 秒" },
+                    selected: autoHideOptions.firstIndex(of: settings.autoHideDelay) ?? 1
+                ) { index in
+                    settings.autoHideDelay = autoHideOptions[index]
+                }
+            }
+            .padding(.vertical, 4)
+
+            divider
+
+            row {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("启动时锁定")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Palette.text)
+                    Text("进播放页就锁上，长按画面 1 秒解除")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Palette.tertiaryText)
+                }
+                Spacer()
+                Toggle("", isOn: boolBinding(\.lockOnStart))
                     .labelsHidden()
                     .tint(Palette.accent)
             }
@@ -257,5 +310,42 @@ struct SettingsView: View {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
         return "\(version) (\(build))"
+    }
+}
+
+// MARK: - 设置页里的三段选择
+
+private struct SettingsSegment: View {
+    let titles: [String]
+    let selected: Int
+    var onSelect: (Int) -> Void
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(titles.indices, id: \.self) { index in
+                Button {
+                    onSelect(index)
+                } label: {
+                    Text(titles[index])
+                        .font(.system(size: 12.5, weight: .medium))
+                        .foregroundStyle(selected == index ? Palette.text : Palette.secondaryText)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 32)
+                        .background {
+                            if selected == index {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(Color.white.opacity(0.16))
+                            }
+                        }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(
+            RoundedRectangle(cornerRadius: 17, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+        )
     }
 }

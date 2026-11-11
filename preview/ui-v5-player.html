@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>播放页改版 · 方案 v5</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0A0A0B;
+    --t1:#EBEBF0;
+    --t2:rgba(235,235,240,.58);
+    --t3:rgba(235,235,240,.34);
+    --blue:#0A84FF;
+    --line:rgba(255,255,255,.10);
+    --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Helvetica Neue",system-ui,sans-serif;
+  }
+  html,body{background:#060607}
+  body{color:#EDEDF2;font-family:var(--sans);-webkit-font-smoothing:antialiased;padding:52px 24px 100px}
+  .page{max-width:1120px;margin:0 auto}
+
+  header{border-bottom:1px solid rgba(255,255,255,.09);padding-bottom:24px}
+  header h1{font-size:24px;font-weight:600;letter-spacing:-.2px}
+  header .sub{font-size:13.5px;color:#9A9AA4;margin-top:10px;line-height:1.8;max-width:780px}
+  header .sub b{color:#DCDCE6}
+  header .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
+  .chip{font-size:11.5px;padding:5px 10px;border-radius:999px;border:.5px solid rgba(255,255,255,.16);color:#B9B9C4;background:rgba(255,255,255,.05)}
+  .chip.on{border-color:rgba(10,132,255,.55);color:#5AB0FF;background:rgba(10,132,255,.12)}
+  .chip.off{border-color:rgba(255,107,96,.4);color:#FF8B82;background:rgba(255,107,96,.10);text-decoration:line-through;opacity:.85}
+
+  .bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:26px 0 30px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:.5px solid rgba(255,255,255,.09)}
+  .bar .lbl{font-size:11.5px;color:#7E7E8A;margin-right:2px}
+  .tab{font-size:12.5px;padding:7px 13px;border-radius:9px;cursor:pointer;background:rgba(255,255,255,.05);border:.5px solid rgba(255,255,255,.10);color:#A8A8B4;font-family:inherit;transition:.15s}
+  .tab:hover{background:rgba(255,255,255,.09)}
+  .tab.on{background:rgba(10,132,255,.18);border-color:rgba(10,132,255,.5);color:#63B4FF}
+  .switch{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#A8A8B4;cursor:pointer;user-select:none}
+  .switch input{appearance:none;width:34px;height:20px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;cursor:pointer;transition:.18s}
+  .switch input:checked{background:var(--blue)}
+  .switch input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.18s}
+  .switch input:checked::after{transform:translateX(14px)}
+
+  .stage{display:flex;flex-wrap:wrap;gap:46px;justify-content:center;align-items:flex-start}
+  .device{padding:8px;border-radius:48px;background:linear-gradient(160deg,#2A2A30,#121214 55%,#26262C);box-shadow:0 30px 60px rgba(0,0,0,.7),0 0 0 .5px rgba(255,255,255,.13)}
+  .slot{width:314px;height:682px;border-radius:42px;overflow:hidden;position:relative}
+  .device.land{border-radius:40px}
+  .slot.land{width:676px;height:312px;border-radius:32px}
+  .slot.set{width:314px;height:682px}
+
+  .screen{width:393px;height:852px;background:var(--bg);position:relative;overflow:hidden;transform:scale(.79);transform-origin:top left;color:var(--t1)}
+  .screen.land{width:852px;height:393px;transform:scale(.7864);transform-origin:top left}
+
+  /* 视频 */
+  .video{position:absolute;inset:0;background:#000;overflow:hidden}
+  .band{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:221px;overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 22% 28%,#31424d 0%,rgba(49,66,77,0) 62%),
+      radial-gradient(90% 80% at 78% 74%,#1b2830 0%,rgba(27,40,48,0) 66%),
+      radial-gradient(60% 60% at 60% 40%,rgba(120,150,165,.20),transparent 70%),
+      linear-gradient(165deg,#14202a,#070c10 70%)}
+  .screen.land .band{position:absolute;inset:0;height:auto;transform:none}
+  .band::after{content:"";position:absolute;inset:0;
+    background:
+      repeating-linear-gradient(115deg,rgba(255,255,255,.045) 0 2px,transparent 2px 9px),
+      radial-gradient(80% 60% at 30% 70%,rgba(255,255,255,.05),transparent 60%);
+    opacity:.5}
+  .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.34),rgba(0,0,0,.10) 26%,rgba(0,0,0,.10) 62%,rgba(0,0,0,.46));pointer-events:none}
+
+  .g{background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.055));
+    -webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%);
+    border:.75px solid rgba(255,255,255,.20);box-shadow:0 6px 20px rgba(0,0,0,.34)}
+  .g-panel{background:linear-gradient(180deg,rgba(28,28,32,.80),rgba(16,16,19,.90));
+    -webkit-backdrop-filter:blur(32px) saturate(150%);backdrop-filter:blur(32px) saturate(150%);
+    border:.75px solid rgba(255,255,255,.16);box-shadow:0 22px 50px rgba(0,0,0,.55)}
+
+  /* 顶栏：只有关闭 + 列表 */
+  .top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;padding:56px 20px 0}
+  .screen.land .top{padding:16px 20px 0}
+  .rbtn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:0 0 auto}
+  .rbtn svg{width:17px;height:17px}
+  .top .spacer{flex:1}
+
+  /* 中部：三圆等大 */
+  .center{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;gap:26px}
+  .screen.land .center{gap:30px}
+  .cbtn{
+    width:58px;height:58px;border-radius:50%;display:grid;place-items:center;color:#fff;
+    background:radial-gradient(circle at 34% 26%,rgba(255,255,255,.22),rgba(255,255,255,.065) 62%);
+    -webkit-backdrop-filter:blur(20px) saturate(165%);backdrop-filter:blur(20px) saturate(165%);
+    border:.75px solid rgba(255,255,255,.24);box-shadow:0 8px 22px rgba(0,0,0,.36)
+  }
+  .cbtn svg{width:25px;height:25px}
+  .cbtn.play svg{width:24px;height:24px}
+  .screen.land .cbtn{width:62px;height:62px}
+  .screen.land .cbtn svg{width:27px;height:27px}
+
+  /* 底部 */
+  .bottom{position:absolute;left:0;right:0;bottom:0;padding:0 20px 30px}
+  .screen.land .bottom{padding:0 16px 18px}
+  .actions{display:flex;justify-content:flex-end;gap:10px;margin-bottom:12px}
+  .abtn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff}
+  .abtn svg{width:20px;height:20px}
+  .abtn .rate{font-size:12.5px;font-weight:600;letter-spacing:-.2px}
+  .prog{height:36px;border-radius:18px;display:flex;align-items:center;gap:11px;padding:0 15px}
+  .prog .t{font-size:12px;font-weight:500;font-variant-numeric:tabular-nums;color:rgba(255,255,255,.92);flex:0 0 auto}
+  .prog .t.rest{color:rgba(255,255,255,.62)}
+  .prog .track{position:relative;flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,.26);cursor:pointer}
+  .prog .fill{position:absolute;left:0;top:0;bottom:0;width:12%;border-radius:2px;background:#fff}
+  .prog .knob{position:absolute;left:12%;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.45)}
+
+  /* 倍速面板 */
+  .speed{position:absolute;width:110px;border-radius:18px;padding:6px 0;right:20px;bottom:126px;display:none}
+  .screen.land .speed{right:16px;bottom:116px;width:116px}
+  .speed .h{font-size:10.5px;color:var(--t3);padding:1px 13px 4px;letter-spacing:.3px;font-weight:600}
+  .speed .row{display:flex;align-items:center;justify-content:flex-start;gap:7px;height:34px;padding:0 13px;font-size:13.5px;color:var(--t1)}
+  .speed .row .tick{width:11px;font-size:10px;opacity:0}
+  .speed .row.on .tick{opacity:1}
+  .speed .row.on{font-weight:600}
+
+  /* 播放列表抽屉 */
+  .drawer{position:absolute;top:12px;bottom:12px;right:12px;width:264px;border-radius:28px;padding:16px;display:none;flex-direction:column}
+  .screen.land .drawer{width:320px;padding:18px}
+  .drawer h4{font-size:11px;letter-spacing:.6px;color:var(--t3);font-weight:600}
+  .drawer .title{font-size:20px;font-weight:600;line-height:1.25;margin-top:7px}
+  .drawer .meta{font-size:12px;color:var(--t2);margin-top:5px;font-variant-numeric:tabular-nums}
+  .drawer .hr{height:.5px;background:rgba(255,255,255,.10);margin:14px 0}
+  .qrow{display:flex;align-items:center;gap:10px;padding:8px 0}
+  .qthumb{width:76px;height:43px;border-radius:6px;flex:0 0 auto;background:linear-gradient(140deg,#2f4250,#151d24)}
+  .qrow.on .qthumb{outline:2px solid var(--blue)}
+  .qrow .qt{font-size:13px;line-height:1.3}
+  .qrow .qs{font-size:11px;color:var(--t3);margin-top:3px;font-variant-numeric:tabular-nums}
+  .qrow.on .qt{font-weight:600}
+  .qwave{margin-left:auto;color:var(--blue);font-size:11px}
+
+  /* 防误触 */
+  .lock{position:absolute;inset:0;display:none;place-items:center}
+  .lock .card{display:flex;flex-direction:column;align-items:center;gap:9px;padding:16px 22px;border-radius:16px;background:rgba(0,0,0,.55);border:.5px solid rgba(255,255,255,.14)}
+  .lock .card svg{width:24px;height:24px;color:#fff}
+  .lock .card span{font-size:12.5px;color:rgba(255,255,255,.82)}
+
+  /* 设置页（第三个屏） */
+  .setpage{position:absolute;inset:0;background:var(--bg);padding:50px 16px 0;overflow:hidden}
+  .setpage::after{content:"";position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(180deg,rgba(10,10,11,0),var(--bg));pointer-events:none}
+  .setpage .hd{display:flex;align-items:center;justify-content:space-between;height:44px;padding:0 4px}
+  .setpage .hd b{font-size:17px;font-weight:600}
+  .setpage .hd .done{font-size:15px;font-weight:600;color:var(--blue)}
+  .card{margin-top:11px}
+  .card > .ct{font-size:11px;letter-spacing:.6px;color:var(--t3);font-weight:600;padding:0 4px 8px}
+  .card > .body{border-radius:18px;padding:4px 14px;background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.05));
+    -webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%);
+    border:.75px solid rgba(255,255,255,.18)}
+  .row{display:flex;align-items:center;justify-content:space-between;min-height:44px;gap:10px}
+  .row .lb{font-size:14px;color:var(--t1)}
+  .row .hint{font-size:11.5px;color:var(--t3);margin-top:2px;line-height:1.4}
+  .row .val{font-size:14px;color:var(--t2);font-variant-numeric:tabular-nums}
+  .div{height:.5px;background:rgba(255,255,255,.08)}
+  .seg{display:flex;gap:2px;padding:3px;border-radius:16px;background:rgba(255,255,255,.06);margin:2px 0 8px}
+  .seg div{flex:1;height:30px;border-radius:13px;display:grid;place-items:center;font-size:12px;color:var(--t2)}
+  .seg div.on{background:rgba(255,255,255,.16);color:var(--t1)}
+  .toggle{width:46px;height:28px;border-radius:999px;background:rgba(255,255,255,.14);position:relative;flex:0 0 auto}
+  .toggle::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff}
+  .toggle.on{background:var(--blue)}
+  .toggle.on::after{left:21px}
+  .newtag{font-size:9.5px;color:#5AB0FF;border:.5px solid rgba(10,132,255,.45);background:rgba(10,132,255,.12);padding:1px 5px;border-radius:5px;margin-left:6px;vertical-align:1px}
+
+  /* 标注 */
+  .annot{display:none}
+  body.annotate .annot{display:block}
+  .annot .box{position:absolute;border:1px dashed rgba(10,132,255,.85);border-radius:8px;font-size:9.5px;color:#7FC0FF;padding:2px 5px;background:rgba(10,132,255,.10);line-height:1.2;pointer-events:none;white-space:nowrap}
+
+  /* 状态 */
+  body[data-state="speed"] .speed{display:block}
+  body[data-state="queue"] .drawer{display:flex}
+  body[data-state="lock"] .lock{display:grid}
+  body[data-state="lock"] .top,body[data-state="lock"] .center,body[data-state="lock"] .bottom{opacity:0;pointer-events:none}
+  body[data-state="queue"] .top,body[data-state="queue"] .center,body[data-state="queue"] .bottom{opacity:0;pointer-events:none}
+  .top,.center,.bottom{transition:opacity .2s}
+
+  /* 表格 */
+  section.spec{margin-top:64px}
+  section.spec h2{font-size:16px;font-weight:600;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:.5px solid rgba(255,255,255,.08);vertical-align:top}
+  th{font-size:11px;color:#7E7E8A;font-weight:600;letter-spacing:.4px;white-space:nowrap}
+  td{color:#B9B9C4;line-height:1.6}
+  td b{font-weight:600;color:#EDEDF2}
+  .new{color:#5AB0FF}
+  .del{color:#FF6B60;text-decoration:line-through;opacity:.8}
+  .note{margin-top:22px;padding:14px 16px;border-radius:12px;font-size:12.5px;line-height:1.75;background:rgba(10,132,255,.08);border:.5px solid rgba(10,132,255,.28);color:#B9CBE0}
+  .note b{color:#8FC5FF}
+  ul.q{margin-top:12px;padding-left:18px;font-size:12.5px;line-height:1.9;color:#B9B9C4}
+  ul.q li::marker{color:#5AB0FF}
+</style>
+</head>
+<body data-state="controls">
+<div class="page">
+
+  <header>
+    <h1>播放页改版 · 方案 v5</h1>
+    <p class="sub">
+      按你的意见收敛：<b>去掉抓帧和音量胶囊</b>，<b>三圆改成一样大</b>，<b>列表挪到右上角</b>，<b>播放设置整体并入 App 设置页</b>。
+      播放页现在只剩「关闭 / 列表 / 三圆 / 进度条 / 倍速」五样东西。第三块屏是设置页的新分组，请一并确认。
+    </p>
+    <div class="chips">
+      <span class="chip on">三圆等大 58pt</span>
+      <span class="chip on">列表 → 右上</span>
+      <span class="chip on">倍速 → 右下</span>
+      <span class="chip off">抓帧按钮</span>
+      <span class="chip off">音量胶囊</span>
+      <span class="chip off">播放设置抽屉</span>
+    </div>
+  </header>
+
+  <div class="bar">
+    <span class="lbl">状态</span>
+    <button class="tab on" data-go="controls">控制层</button>
+    <button class="tab" data-go="speed">倍速面板</button>
+    <button class="tab" data-go="queue">播放列表</button>
+    <button class="tab" data-go="lock">防误触</button>
+    <label class="switch" style="margin-left:auto">
+      <input type="checkbox" id="annot"><span>显示热区标注</span>
+    </label>
+  </div>
+
+  <div class="stage">
+    <!-- 竖屏 -->
+    <div class="device">
+      <div class="slot">
+        <div class="screen">
+          <div class="video"><div class="band"></div></div>
+          <div class="scrim"></div>
+
+          <div class="top">
+            <div class="rbtn g"><i data-ico="close"></i></div>
+            <div class="spacer"></div>
+            <div class="rbtn g" data-go="queue"><i data-ico="list"></i></div>
+          </div>
+
+          <div class="center">
+            <div class="cbtn"><i data-ico="back10"></i></div>
+            <div class="cbtn play"><i data-ico="pause"></i></div>
+            <div class="cbtn"><i data-ico="fwd10"></i></div>
+          </div>
+
+          <div class="bottom">
+            <div class="actions">
+              <div class="abtn g" data-go="speed"><span class="rate">1×</span></div>
+            </div>
+            <div class="prog g">
+              <span class="t">00:14</span>
+              <div class="track"><div class="fill"></div><div class="knob"></div></div>
+              <span class="t rest">−45:11</span>
+            </div>
+          </div>
+
+          <div class="speed g-panel">
+            <div class="h">播放速度</div>
+            <div class="row"><span class="tick">✓</span><span>2 倍</span></div>
+            <div class="row"><span class="tick">✓</span><span>1.5 倍</span></div>
+            <div class="row"><span class="tick">✓</span><span>1.25 倍</span></div>
+            <div class="row on"><span class="tick">✓</span><span>1 倍</span></div>
+            <div class="row"><span class="tick">✓</span><span>0.5 倍</span></div>
+          </div>
+
+          <div class="drawer g-panel">
+            <h4>正在播放</h4>
+            <div class="title">谷雨 第7集</div>
+            <div class="meta">45:25 · 1.2 GB</div>
+            <div class="meta" style="color:var(--t3)">第 1 个 · 共 4 个</div>
+            <div class="hr"></div>
+            <div class="qrow on"><div class="qthumb"></div><div><div class="qt">谷雨 第7集</div><div class="qs">45:25</div></div><div class="qwave">◍ ◍ ◍</div></div>
+            <div class="qrow"><div class="qthumb" style="background:linear-gradient(140deg,#3d3548,#181420)"></div><div><div class="qt">谷雨 第8集</div><div class="qs">44:08</div></div></div>
+            <div class="qrow"><div class="qthumb" style="background:linear-gradient(140deg,#4a3a2c,#1a1310)"></div><div><div class="qt">谷雨 第9集</div><div class="qs">46:02</div></div></div>
+          </div>
+
+          <div class="lock"><div class="card"><i data-ico="lock"></i><span>已锁定 · 长按 1 秒解除</span></div></div>
+
+          <div class="annot">
+            <div class="box" style="left:20px;top:54px">关闭</div>
+            <div class="box" style="right:20px;top:54px">播放列表（右上）</div>
+            <div class="box" style="left:50%;top:calc(50% - 150px);transform:translateX(-50%)">三圆等大 58pt · 间距 26</div>
+            <div class="box" style="right:20px;bottom:96px">倍速</div>
+            <div class="box" style="left:20px;bottom:30px;width:calc(100% - 40px);text-align:center">通栏进度条 36 高</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 横屏 -->
+    <div class="device land">
+      <div class="slot land">
+        <div class="screen land">
+          <div class="video"><div class="band"></div></div>
+          <div class="scrim"></div>
+
+          <div class="top">
+            <div class="rbtn g"><i data-ico="close"></i></div>
+            <div class="spacer"></div>
+            <div class="rbtn g" data-go="queue"><i data-ico="list"></i></div>
+          </div>
+
+          <div class="center">
+            <div class="cbtn"><i data-ico="back10"></i></div>
+            <div class="cbtn play"><i data-ico="pause"></i></div>
+            <div class="cbtn"><i data-ico="fwd10"></i></div>
+          </div>
+
+          <div class="bottom">
+            <div class="actions"><div class="abtn g" data-go="speed"><span class="rate">1×</span></div></div>
+            <div class="prog g">
+              <span class="t">00:14</span>
+              <div class="track"><div class="fill"></div><div class="knob"></div></div>
+              <span class="t rest">−45:11</span>
+            </div>
+          </div>
+
+          <div class="speed g-panel">
+            <div class="h">播放速度</div>
+            <div class="row"><span class="tick">✓</span><span>2 倍</span></div>
+            <div class="row"><span class="tick">✓</span><span>1.5 倍</span></div>
+            <div class="row"><span class="tick">✓</span><span>1.25 倍</span></div>
+            <div class="row on"><span class="tick">✓</span><span>1 倍</span></div>
+            <div class="row"><span class="tick">✓</span><span>0.5 倍</span></div>
+          </div>
+
+          <div class="drawer g-panel">
+            <h4>正在播放</h4>
+            <div class="title">谷雨 第7集</div>
+            <div class="meta">45:25 · 1.2 GB</div>
+            <div class="meta" style="color:var(--t3)">第 1 个 · 共 4 个</div>
+            <div class="hr"></div>
+            <div class="qrow on"><div class="qthumb" style="width:60px;height:34px"></div><div><div class="qt">谷雨 第7集</div><div class="qs">45:25</div></div><div class="qwave">◍ ◍ ◍</div></div>
+            <div class="qrow"><div class="qthumb" style="width:60px;height:34px;background:linear-gradient(140deg,#3d3548,#181420)"></div><div><div class="qt">谷雨 第8集</div><div class="qs">44:08</div></div></div>
+            <div class="qrow"><div class="qthumb" style="width:60px;height:34px;background:linear-gradient(140deg,#4a3a2c,#1a1310)"></div><div><div class="qt">谷雨 第9集</div><div class="qs">46:02</div></div></div>
+          </div>
+
+          <div class="lock"><div class="card"><i data-ico="lock"></i><span>已锁定 · 长按 1 秒解除</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 设置页 -->
+    <div class="device">
+      <div class="slot">
+        <div class="screen">
+          <div class="setpage">
+            <div class="hd"><b>设置</b><span class="done">完成</span></div>
+
+            <div class="card">
+              <div class="ct">播放</div>
+              <div class="body">
+                <div class="row"><span class="lb">默认倍速</span><span class="val">1×</span></div>
+                <div class="div"></div>
+                <div class="row" style="flex-direction:column;align-items:stretch;padding:7px 0">
+                  <span class="lb">默认播放模式</span>
+                  <div class="seg" style="margin-top:8px"><div class="on">列表循环</div><div>单集循环</div><div>播完暂停</div></div>
+                </div>
+                <div class="div"></div>
+                <div class="row" style="flex-direction:column;align-items:stretch;padding:7px 0">
+                  <span class="lb">默认画面<span class="newtag">新增</span></span>
+                  <div class="seg" style="margin-top:8px"><div class="on">适应</div><div>填充</div><div>拉伸</div></div>
+                </div>
+                <div class="div"></div>
+                <div class="row">
+                  <div><div class="lb">断点续播</div><div class="hint">再次打开时从上次位置开始</div></div>
+                  <div class="toggle on"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="ct">播放界面</div>
+              <div class="body">
+                <div class="row">
+                  <div><div class="lb">屏幕常亮<span class="newtag">移入</span></div><div class="hint">播放时不自动锁屏</div></div>
+                  <div class="toggle on"></div>
+                </div>
+                <div class="div"></div>
+                <div class="row" style="flex-direction:column;align-items:stretch;padding:7px 0">
+                  <span class="lb">控件自动隐藏<span class="newtag">移入</span></span>
+                  <div class="seg" style="margin-top:8px"><div>2 秒</div><div class="on">4 秒</div><div>6 秒</div></div>
+                </div>
+                <div class="div"></div>
+                <div class="row">
+                  <div><div class="lb">启动时锁定<span class="newtag">移入</span></div><div class="hint">进播放页就锁上，长按画面 1 秒解除</div></div>
+                  <div class="toggle"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="ct">存储</div>
+              <div class="body">
+                <div class="row"><span class="lb">视频占用</span><span class="val">3.7 GB</span></div>
+                <div class="div"></div>
+                <div class="row"><span class="lb">视频数量</span><span class="val">12</span></div>
+                <div class="div"></div>
+                <div class="row"><span class="lb">清理缩略图缓存</span><span class="val" style="color:var(--t3)">已清理</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="spec">
+    <h2>这一版改了什么</h2>
+    <table>
+      <thead><tr><th>功能</th><th>v4 草案</th><th>v5</th></tr></thead>
+      <tbody>
+        <tr><td><b>抓帧存相册</b></td><td class="del">左上第二个圆键</td><td class="del">删除按钮</td></tr>
+        <tr><td><b>音量胶囊</b></td><td class="del">右上滑杆</td><td class="del">删除，回到「右半屏竖滑」手势</td></tr>
+        <tr><td><b>中部三圆</b></td><td>60 / 98 / 60</td><td class="new">等大 58（横屏 62），间距 26 / 30</td></tr>
+        <tr><td><b>播放列表</b></td><td>底部右二</td><td class="new">右上圆键 38</td></tr>
+        <tr><td><b>播放设置</b></td><td>底部右三 → 右侧抽屉</td><td class="new">整组移入 App 设置页「播放界面」分组</td></tr>
+        <tr><td><b>倍速</b></td><td>底部右一 → 浮动面板</td><td>保留：右下圆键 + 面板（5 档）</td></tr>
+        <tr><td><b>进度条</b></td><td>通栏胶囊</td><td>不变</td></tr>
+        <tr><td><b>关闭</b></td><td>左上</td><td>不变</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin-top:34px">设置页新增 / 移动的项</h2>
+    <table>
+      <thead><tr><th>分组</th><th>项</th><th>来源</th><th>作用</th></tr></thead>
+      <tbody>
+        <tr><td>播放</td><td><b>默认画面</b></td><td class="new">原播放抽屉 → 移入</td><td>适应 / 填充 / 拉伸，作为每次播放的初始值</td></tr>
+        <tr><td>播放界面</td><td><b>屏幕常亮</b></td><td class="new">原播放抽屉 → 移入</td><td>播放时不自动锁屏</td></tr>
+        <tr><td>播放界面</td><td><b>控件自动隐藏</b></td><td class="new">原播放抽屉 → 移入</td><td>2 / 4 / 6 秒</td></tr>
+        <tr><td>播放界面</td><td><b>防误触</b></td><td class="new">原播放抽屉 → 移入</td><td>开启后每次进入播放页默认锁定画面，只留长按 1 秒解除</td></tr>
+        <tr><td>播放</td><td>默认倍速 / 默认播放模式 / 断点续播</td><td>原有</td><td>不变</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <b>已定的三条</b><br>
+      ① 倍速五档（2 / 1.5 / 1.25 / 1 / 0.5）够了，不再补 0.75 / 1.75。<br>
+      ② 长按画面 = 2× 快进，保持原样；不加「长按 2 秒锁定」，避免同一个手势两种结局。<br>
+      ③ 防误触只在设置里预设：开了「启动时锁定」，进播放页就是锁上的，长按画面 1 秒解除。
+    </div>
+
+    <h2 style="margin-top:34px">倍速面板为什么这么窄</h2>
+    <p class="sub" style="max-width:780px">
+      面板只有「标题 + 五档」这点内容，宽度 110（横屏 116），行高 34，右缘与倍速键对齐、贴在其上方 8pt。
+      竖屏下它只占屏幕右侧约 28% 的宽度，画面中部和三个运输键完全不被遮挡。
+    </p>
+  </section>
+</div>
+
+<script>
+  const ICONS = {
+    close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    camera: '<rect x="3" y="6.5" width="18" height="13" rx="3"/><circle cx="12" cy="13" r="3.6"/>',
+    speaker: '<path d="M4 9.5h3l4-3.2v11.4l-4-3.2H4z"/><path d="M15 9a4.2 4.2 0 010 6"/>',
+    back10: '<path d="M12 5.5a6.5 6.5 0 11-6.2 8.5"/><path d="M12 5.5l-2.4-2M12 5.5l-2.4 2"/><text x="12" y="15.4" text-anchor="middle" font-size="7.4" font-weight="700" fill="currentColor" stroke="none">10</text>',
+    fwd10: '<path d="M12 5.5a6.5 6.5 0 106.2 8.5"/><path d="M12 5.5l2.4-2M12 5.5l2.4 2"/><text x="12" y="15.4" text-anchor="middle" font-size="7.4" font-weight="700" fill="currentColor" stroke="none">10</text>',
+    pause: '<rect x="8.6" y="6.4" width="3.4" height="11.2" rx="1.2" fill="currentColor" stroke="none"/><rect x="13.6" y="6.4" width="3.4" height="11.2" rx="1.2" fill="currentColor" stroke="none"/>',
+    list: '<path d="M4 7h16M4 12h16M4 17h10"/>',
+    lock: '<rect x="5.5" y="10.5" width="13" height="9" rx="2.4"/><path d="M8.6 10.5V8.2a3.4 3.4 0 016.8 0v2.3"/>'
+  };
+  document.querySelectorAll('[data-ico]').forEach(el => {
+    const p = ICONS[el.dataset.ico];
+    if (!p) return;
+    el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
+  });
+
+  const tabs = [...document.querySelectorAll('.tab')];
+  function setState(s){
+    document.body.dataset.state = s;
+    tabs.forEach(t => t.classList.toggle('on', t.dataset.go === s));
+  }
+  document.querySelectorAll('[data-go]').forEach(el => {
+    el.addEventListener('click', e => { e.stopPropagation(); setState(el.dataset.go); });
+  });
+
+  document.querySelectorAll('.speed .row').forEach(row => {
+    row.addEventListener('click', () => {
+      document.querySelectorAll('.speed .row').forEach(r => r.classList.remove('on'));
+      row.classList.add('on');
+      const txt = row.querySelector('span:last-child').textContent.replace(' 倍','×');
+      document.querySelectorAll('.abtn .rate').forEach(r => r.textContent = txt);
+    });
+  });
+
+  document.getElementById('annot').addEventListener('change', e => {
+    document.body.classList.toggle('annotate', e.target.checked);
+  });
+
+  const only = new URLSearchParams(location.search).get('only');
+  if (only === 'portrait') document.querySelectorAll('.device.land, .device.set').forEach(d=>d.style.display='none');
+  else if (only === 'land') document.querySelectorAll('.device:not(.land)').forEach(d=>d.style.display='none');
+  else if (only === 'set') {
+    document.querySelectorAll('.device.land').forEach(d=>d.style.display='none');
+    document.querySelectorAll('.device:not(.land)')[0].style.display='none';
+  }
+  else if (only) setState(only);
+</script>
+</body>
+</html>

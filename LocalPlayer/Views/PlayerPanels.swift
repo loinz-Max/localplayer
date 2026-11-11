@@ -1,10 +1,5 @@
 import SwiftUI
 
-enum PlayerPanel: Equatable {
-    case queue
-    case settings
-}
-
 // MARK: - 抽屉外壳
 
 struct PanelShell<Content: View>: View {
@@ -30,21 +25,6 @@ struct PanelShell<Content: View>: View {
         .glass(cornerRadius: 28, style: .panel)
         .padding(.trailing, 12)
         .padding(.vertical, 12)
-    }
-}
-
-// MARK: - 分组标题 / 分隔
-
-private struct PanelGroupTitle: View {
-    let text: String
-    var body: some View {
-        Text(text)
-            .font(.system(size: 11, weight: .semibold))
-            .tracking(0.6)
-            .foregroundStyle(Palette.tertiaryText)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 14)
-            .padding(.bottom, 4)
     }
 }
 
@@ -172,186 +152,65 @@ struct QueuePanel: View {
     }
 }
 
-// MARK: - 播放设置抽屉
+// MARK: - 倍速面板（浮在倍速键上方的一块小面板）
 
-struct SettingsPanel: View {
-    let isLandscape: Bool
+struct SpeedPanel: View {
     @Binding var rate: Double
-    @Binding var mode: PlayMode
-    @Binding var gravityIndex: Int
-    @Binding var keepAwake: Bool
-    /// 防误触
-    @Binding var locked: Bool
+    let isLandscape: Bool
+    var onPick: () -> Void
 
-    @EnvironmentObject private var settings: AppSettings
+    /// 五档够了：2 / 1.5 / 1.25 / 1 / 0.5
+    static let rates: [Double] = [2, 1.5, 1.25, 1, 0.5]
 
-    private let rates: [Double] = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
-    private let gravityTitles = ["适应", "填充", "拉伸"]
-    private let autoHideOptions: [Double] = [2, 4, 6]
+    /// 面板按内容算宽：只有「✓ + 1.25 倍」这么点东西，不需要更宽
+    private var width: CGFloat { isLandscape ? 116 : 110 }
 
     var body: some View {
-        PanelShell(isLandscape: isLandscape) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("播放设置")
-                    .font(.system(size: isLandscape ? 16 : 18, weight: .semibold))
-                    .foregroundStyle(Palette.text)
+        VStack(alignment: .leading, spacing: 0) {
+            Text("播放速度")
+                .font(.system(size: 10.5, weight: .semibold))
+                .tracking(0.3)
+                .foregroundStyle(Palette.tertiaryText)
+                .padding(.horizontal, 13)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
 
-                PanelGroupTitle(text: "播放")
-
-                HStack(spacing: 10) {
-                    Text("倍速")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.text)
-
-                    Spacer(minLength: 0)
-
-                    stepButton("minus") { step(-0.25) }
-
-                    Text(rateText)
-                        .font(.system(size: 13, weight: .semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.text)
-                        .frame(width: 48)
-
-                    stepButton("plus") { step(0.25) }
-                }
-                .frame(height: rowHeight)
-
-                PanelDivider().padding(.vertical, 6)
-
-                Text("模式")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Palette.text)
-                    .frame(height: rowHeight, alignment: .leading)
-
-                SegmentedBar(
-                    titles: PlayMode.allCases.map(\.title),
-                    selected: PlayMode.allCases.firstIndex(of: mode) ?? 0
-                ) { index in
-                    mode = PlayMode.allCases[index]
-                }
-
-                PanelGroupTitle(text: "画面")
-
-                SegmentedBar(titles: gravityTitles, selected: gravityIndex) { index in
-                    gravityIndex = index
-                }
-
-                PanelGroupTitle(text: "界面")
-
-                HStack(spacing: 10) {
-                    Text("屏幕常亮")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.text)
-                    Spacer(minLength: 0)
-                    Toggle("", isOn: $keepAwake)
-                        .labelsHidden()
-                        .tint(Palette.accent)
-                }
-                .frame(height: rowHeight)
-
-                PanelDivider().padding(.vertical, 6)
-
-                Text("自动隐藏")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Palette.text)
-                    .frame(height: rowHeight, alignment: .leading)
-
-                SegmentedBar(
-                    titles: autoHideOptions.map { "\(Int($0)) 秒" },
-                    selected: autoHideIndex
-                ) { index in
-                    settings.autoHideDelay = autoHideOptions[index]
-                }
-
-                PanelDivider().padding(.vertical, 6)
-
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("防误触")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Palette.text)
-                        Text("锁上后长按 1 秒解除")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.tertiaryText)
-                    }
-                    Spacer(minLength: 0)
-                    Toggle("", isOn: $locked)
-                        .labelsHidden()
-                        .tint(Palette.accent)
-                }
-                .frame(height: rowHeight + 6)
-
-                PanelDivider().padding(.vertical, 10)
-
-                Text("倍速与模式只在本次播放有效，退出播放页就恢复默认")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Palette.tertiaryText)
-                    .fixedSize(horizontal: false, vertical: true)
+            ForEach(Self.rates, id: \.self) { value in
+                row(value)
             }
         }
+        .padding(.bottom, 6)
+        .frame(width: width)
+        .glass(cornerRadius: 18, style: .panel)
     }
 
-    private var rowHeight: CGFloat { isLandscape ? 38 : 42 }
+    private func row(_ value: Double) -> some View {
+        let active = abs(value - rate) < 0.001
+        return Button {
+            rate = value
+            onPick()
+        } label: {
+            HStack(spacing: 7) {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 10, weight: .bold))
+                    .frame(width: 11)
+                    .opacity(active ? 1 : 0)
 
-    private var autoHideIndex: Int {
-        autoHideOptions.firstIndex(of: settings.autoHideDelay) ?? 1
-    }
+                Text(Self.label(value))
+                    .font(.system(size: 13.5, weight: active ? .semibold : .regular))
+                    .monospacedDigit()
 
-    private var rateText: String {
-        rate == 1 ? "1×" : "\(String(format: "%g", rate))×"
-    }
-
-    private func step(_ delta: Double) {
-        let next = ((rate + delta) * 4).rounded() / 4
-        rate = min(max(next, 0.5), 2)
-    }
-
-    private func stepButton(_ icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Palette.text)
-                .frame(width: 30, height: 30)
-                .background(Circle().fill(Color.white.opacity(0.10)))
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(active ? Palette.text : Palette.text.opacity(0.86))
+            .padding(.horizontal, 13)
+            .frame(height: 34)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
-}
 
-// MARK: - 三段选择
-
-private struct SegmentedBar: View {
-    let titles: [String]
-    let selected: Int
-    var onSelect: (Int) -> Void
-
-    var body: some View {
-        HStack(spacing: 2) {
-            ForEach(titles.indices, id: \.self) { index in
-                Button {
-                    onSelect(index)
-                } label: {
-                    Text(titles[index])
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(selected == index ? Palette.text : Palette.secondaryText)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 30)
-                        .background {
-                            if selected == index {
-                                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                    .fill(Color.white.opacity(0.16))
-                            }
-                        }
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(3)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.06))
-        )
+    static func label(_ value: Double) -> String {
+        value == 1 ? "1 倍" : "\(String(format: "%g", value)) 倍"
     }
 }
