@@ -39,6 +39,7 @@ struct LibraryView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var progress: ProgressStore
     @EnvironmentObject private var settings: AppSettings
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var playingItem: VideoItem?
     @State private var showFileImporter = false
@@ -150,6 +151,12 @@ struct LibraryView: View {
             library.reload()
             progress.refresh()
             applyDebugRoute()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // 从爱思助手 / 文件 App / iCloud 拷完文件切回来，重新扫一遍
+            guard phase == .active else { return }
+            library.reload()
+            progress.refresh()
         }
         .onChange(of: photoSelections) { _, items in
             guard !items.isEmpty else { return }
@@ -334,6 +341,11 @@ struct LibraryView: View {
             }
         }
         .scrollDismissesKeyboard(.immediately)
+        .refreshable {
+            // 下拉兜底：文件系统监听万一没收到事件，手动也能拉一次
+            library.reload()
+            progress.refresh()
+        }
         .onPreferenceChange(CardFrameKey.self) { cardFrames = $0 }
         .onPreferenceChange(FolderFrameKey.self) { folderFrames = $0 }
     }
@@ -539,15 +551,42 @@ struct LibraryView: View {
                 .font(.system(size: 38, weight: .light))
                 .foregroundStyle(Palette.tertiaryText)
 
-            Text("还没有视频")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Palette.text)
+            if library.allItems.isEmpty {
+                Text("还没有视频")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Palette.text)
 
-            Text("从相册或「文件」App 导入\n视频只存在本机，不联网、不上传")
-                .font(.system(size: 12.5))
-                .multilineTextAlignment(.center)
-                .lineSpacing(3)
-                .foregroundStyle(Palette.tertiaryText)
+                Text("从相册或「文件」App 导入\n视频只存在本机，不联网、不上传")
+                    .font(.system(size: 12.5))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(3)
+                    .foregroundStyle(Palette.tertiaryText)
+            } else {
+                // 库里有东西、这个目录却是空的：说清情况，别让人以为文件丢了
+                Text("这个目录里没有视频")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Palette.text)
+
+                Text("资料库里共有 \(library.allItems.count) 个视频，都在其他目录")
+                    .font(.system(size: 12.5))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(3)
+                    .foregroundStyle(Palette.tertiaryText)
+
+                if library.currentFolder != nil {
+                    Button {
+                        library.currentFolder = nil
+                    } label: {
+                        Text("回到资料库")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 20)
+                            .frame(height: 36)
+                            .background(Palette.accent, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
 
             HStack(spacing: 8) {
                 Button {

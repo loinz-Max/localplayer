@@ -20,10 +20,48 @@ final class LibraryStore: ObservableObject {
 
     let documents: URL
 
+    /// 监听 Documents 目录本身的变化：爱思助手、文件 App、iCloud 从外部写进来的文件
+    /// 不会触发任何 SwiftUI 回调，只能靠文件系统事件兜住。
+    private var watcher: DispatchSourceFileSystemObject?
+    private var reloadWorkItem: DispatchWorkItem?
+
     init() {
         documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         loadFolderNames()
         reload()
+        startWatching()
+    }
+
+    deinit {
+        watcher?.cancel()
+        reloadWorkItem?.cancel()
+    }
+
+    // MARK: - 目录监听
+
+    private func startWatching() {
+        let fd = open(documents.path, O_EVTONLY)
+        guard fd >= 0 else { return }
+
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd,
+            eventMask: [.write, .rename, .delete, .extend],
+            queue: .main
+        )
+        source.setEventHandler { [weak self] in
+            self?.scheduleReload()
+        }
+        source.setCancelHandler { close(fd) }
+        source.resume()
+        watcher = source
+    }
+
+    /// 批量导入会连着触发好多次事件，攒 0.4 秒只刷一次
+    private func scheduleReload() {
+        reloadWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.reload() }
+        reloadWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4, execute: work)
     }
 
     // MARK: - 扫描
@@ -43,8 +81,10 @@ final class LibraryStore: ObservableObject {
         while let url = enumerator?.nextObject() as? URL {
             let values = try? url.resourceValues(forKeys: Set(keys))
             if values?.isDirectory == true {
-                let relative = url.path.replacingOccurrences(of: documents.path + "/", with: "")
-                if !relative.isEmpty, !relative.hasPrefix(".") {
+                // 同样走 relativePath，避免 /private 前缀导致子目录也算错
+                if let relative = VideoItem.relativePath(of: url, in: documents),
+                   !relative.isEmpty,
+                   !relative.hasPrefix(".") {
                     folderSet.insert(relative)
                 }
                 continue
@@ -142,7 +182,7 @@ final class LibraryStore: ObservableObject {
         }
 
         reload()
-        let relative = target.path.replacingOccurrences(of: documents.path + "/", with: "")
+        let relative = VideoItem.relativePath(of: target, in: documents) ?? target.lastPathComponent
         return VideoItem(url: target, documents: documents) ?? allItems.first { $0.relativePath == relative }
     }
 

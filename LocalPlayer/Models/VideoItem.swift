@@ -36,7 +36,8 @@ extension VideoItem {
     init?(url: URL, documents: URL) {
         let ext = url.pathExtension.lowercased()
         guard VideoItem.videoExtensions.contains(ext) else { return nil }
-        let relative = url.path.replacingOccurrences(of: documents.path + "/", with: "")
+
+        let relative = VideoItem.relativePath(of: url, in: documents) ?? url.lastPathComponent
         let attrs = (try? FileManager.default.attributesOfItem(atPath: url.path)) ?? [:]
         let size = (attrs[.size] as? NSNumber)?.int64Value ?? 0
         let modified = (attrs[.modificationDate] as? Date) ?? Date.distantPast
@@ -49,6 +50,21 @@ extension VideoItem {
         self.fileSize = size
         self.modified = modified
         self.ext = ext
+    }
+
+    /// 取相对 Documents 的路径。
+    ///
+    /// 不能直接对绝对路径做字符串替换：外部进程（爱思助手 / 文件 App / AFC 拷贝）写进来的文件，
+    /// 路径可能是 `/private/var/mobile/.../Documents/x.mp4`，而 `urls(for: .documentDirectory)`
+    /// 给的是 `/var/mobile/.../Documents`。替换失败时相对路径就成了整条绝对路径，
+    /// `folder` 随之变成「绝对路径的父目录」，于是这些视频在根目录里永远筛不出来
+    /// —— 表现就是「设置里数得到、列表里看不到」。
+    static func relativePath(of url: URL, in root: URL) -> String? {
+        let prefixes = [root.path, "/private" + root.path]
+        for prefix in prefixes where url.path.hasPrefix(prefix + "/") {
+            return String(url.path.dropFirst(prefix.count + 1))
+        }
+        return nil
     }
 }
 
