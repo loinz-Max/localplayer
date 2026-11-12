@@ -115,6 +115,7 @@ jobs:
           snap 12-list "-screen list -seedDemo 1" 5
           snap 13-select "-screen select -seedDemo 1" 5
           snap 14-more "-screen more -seedDemo 1" 5
+          snap 16-search "-screen search -query 示例 -seedDemo 1" 6
 
           ls -lh shots
 

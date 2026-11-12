@@ -132,6 +132,8 @@ struct VideoCard: View {
     var active: Bool = false
     /// 多选模式下被选中
     var selected: Bool = false
+    /// 搜索结果里显示所在文件夹（平时为 nil）
+    var folderName: String? = nil
 
     @State private var duration: Double?
 
@@ -189,6 +191,9 @@ struct VideoCard: View {
 
     private var metaText: String {
         var parts: [String] = []
+        if let folderName, !folderName.isEmpty {
+            parts.append(folderName)
+        }
         if let duration, duration > 0 {
             parts.append(Fmt.time(duration))
         }
@@ -242,6 +247,8 @@ struct VideoRow: View {
     let fraction: Double
     var watched: Bool = false
     var selected: Bool = false
+    /// 搜索结果里显示所在文件夹（平时为 nil）
+    var folderName: String? = nil
 
     @State private var duration: Double?
 
@@ -295,6 +302,9 @@ struct VideoRow: View {
 
     private var metaText: String {
         var parts: [String] = []
+        if let folderName, !folderName.isEmpty {
+            parts.append(folderName)
+        }
         if let duration, duration > 0 {
             parts.append(Fmt.time(duration))
         }
