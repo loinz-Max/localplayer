@@ -42,6 +42,8 @@ struct LibraryView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var playingItem: VideoItem?
+    /// 进播放页那一刻的列表顺序：冻结下来，切集时列表就不会把当前视频甩到末尾
+    @State private var playingQueue: [VideoItem] = []
     @State private var showFileImporter = false
     @State private var showPhotoPicker = false
     @State private var photoSelections: [PhotosPickerItem] = []
@@ -176,7 +178,7 @@ struct LibraryView: View {
             matching: .videos
         )
         .fullScreenCover(item: $playingItem) { item in
-            PlayerScreen(item: item, queue: sortedVideos)
+            PlayerScreen(item: item, queue: playingQueue)
         }
         .sheet(isPresented: $showSettings) {
             SettingsView()
@@ -375,6 +377,7 @@ struct LibraryView: View {
             if target != nil || folderTarget != nil {
                 if Date().timeIntervalSince(menuGuard) > 0.35 { closeMenus() }
             } else {
+                playingQueue = sortedVideos
                 playingItem = item
             }
         }
@@ -783,6 +786,7 @@ struct LibraryView: View {
             case "player":
                 if let first = library.allItems.first {
                     if !first.folder.isEmpty { library.currentFolder = first.folder }
+                    playingQueue = sortedVideos
                     playingItem = first
                 }
             case "folder":

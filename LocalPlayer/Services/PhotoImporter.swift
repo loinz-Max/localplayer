@@ -34,6 +34,10 @@ enum PhotoImporter {
         into folder: String?,
         library: LibraryStore
     ) async -> Int {
+        // 相册默认是「仅选中项」的临时授权，拿不到 PHAsset 就没有原文件名；
+        // 第一次导入时申请一次完整访问，用户拒绝也没关系，会回落到日期命名。
+        await ensurePhotoAccess()
+
         let documents = library.documents
         let target = folder.map { documents.appendingPathComponent($0) } ?? documents
         try? FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
@@ -56,6 +60,15 @@ enum PhotoImporter {
             await MainActor.run { library.reload() }
         }
         return saved
+    }
+
+    private static func ensurePhotoAccess() async {
+        guard PHPhotoLibrary.authorizationStatus(for: .readWrite) == .notDetermined else { return }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            PHPhotoLibrary.requestAuthorization(for: .readWrite) { _ in
+                continuation.resume()
+            }
+        }
     }
 
     /// 相册里这条视频的原始文件名。取不到（没给相册权限、或不是来自相册）返回 nil。

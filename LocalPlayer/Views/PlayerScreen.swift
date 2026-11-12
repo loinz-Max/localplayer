@@ -91,7 +91,6 @@ private struct PlayerCore: View {
 
     /// 防误触：锁上后除了「长按 1 秒解除」以外的所有触摸都不响应
     @State private var touchLocked = false
-    @State private var lockHintVisible = false
 
     @State private var hud: HUD?
     @State private var hudToken = 0
@@ -107,6 +106,10 @@ private struct PlayerCore: View {
     @State private var volumeStart: Float = 0
 
     @State private var boosting = false
+    /// 按下计时令牌：松手/重新按下都会让旧的延时失效
+    @State private var pressToken = 0
+    /// 锁定状态下点击屏幕后，只把解锁按钮亮出来
+    @State private var lockButtonVisible = false
 
     @State private var scrubFraction: Double?
     @State private var isScrubbing = false
@@ -153,11 +156,11 @@ private struct PlayerCore: View {
                     .highPriorityGesture(doubleTapGesture(size: geo.size))
                     .onTapGesture { handleTap() }
                     .onLongPressGesture(
-                        minimumDuration: 0.35,
+                        minimumDuration: 0.6,
                         maximumDistance: 60,
-                        perform: { startLongPress() },
+                        perform: {},
                         onPressingChanged: { pressing in
-                            if !pressing { endLongPress() }
+                            handlePressChange(pressing)
                         }
                     )
                     .simultaneousGesture(magnifyGesture)
@@ -354,16 +357,27 @@ private struct PlayerCore: View {
         }
     }
 
-    /// 长按 = 2× 快进（锁定时不响应）
-    private func startLongPress() {
-        // 暂停状态下不进 2×，避免「按了半天没反应／画面自己动起来」两种误解都不想要
-        guard !touchLocked, !queueOpen, model.isPlaying, !speedOpen else { return }
-        withAnimation(.easeOut(duration: 0.12)) { boosting = true }
-        model.setRate(2)
-    }
+    /// 按住 0.28 秒进 2×，一松手立刻回原速。
+    ///
+    /// 不用 `perform`：它要等 minimumDuration 才触发，而松手与触发谁先谁后不确定，
+    /// 会出现「松手后才变 2×、然后再也不回来」。这里直接用 pressing 自己计时。
+    private func handlePressChange(_ pressing: Bool) {
+        pressToken += 1
+        let token = pressToken
 
-    private func endLongPress() {
-        endBoost()
+        guard pressing else {
+            endBoost()
+            return
+        }
+
+        // 暂停、锁定、抽屉/面板打开时不响应
+        guard !touchLocked, !queueOpen, model.isPlaying, !speedOpen else { return }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+            guard pressToken == token, !boosting else { return }
+            withAnimation(.easeOut(duration: 0.12)) { boosting = true }
+            model.setRate(2)
+        }
     }
 
     private func endBoost() {
@@ -373,7 +387,10 @@ private struct PlayerCore: View {
     }
 
     private func handleTap() {
-        guard !touchLocked else { return }
+        if touchLocked {
+            toggleLockButton()
+            return
+        }
         if speedOpen {
             withAnimation(.easeOut(duration: 0.16)) { speedOpen = false }
         } else if queueOpen {
@@ -447,50 +464,59 @@ private struct PlayerCore: View {
         withAnimation(.easeOut(duration: 0.2)) {
             queueOpen = false
             speedOpen = false
+            lockButtonVisible = false
         }
         withAnimation(.easeInOut(duration: 0.2)) { chromeVisible = false }
-        withAnimation(.easeOut(duration: 0.2)) { lockHintVisible = true }
         hud = nil
+        level = nil
+    }
 
+    /// 锁定状态下点屏幕：只把解锁按钮亮出来，3 秒后自己收回去
+    private func toggleLockButton() {
+        hideToken += 1
         let token = hideToken
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+        withAnimation(.easeOut(duration: 0.16)) { lockButtonVisible = true }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             if hideToken == token, touchLocked {
-                withAnimation(.easeOut(duration: 0.3)) { lockHintVisible = false }
+                withAnimation(.easeIn(duration: 0.2)) { lockButtonVisible = false }
             }
         }
     }
 
     private func unlock() {
-        withAnimation(.easeOut(duration: 0.2)) { touchLocked = false }
-        lockHintVisible = false
+        withAnimation(.easeOut(duration: 0.2)) {
+            touchLocked = false
+            lockButtonVisible = false
+        }
         showChrome(persistent: false)
-        showToast("已解除锁定")
     }
 
     /// 锁定时铺满全屏的触摸拦截层：单击无视，长按 1 秒解除
+    /// 锁定时铺一层透明接点击：点屏幕只亮出左下角的解锁按钮，不做任何手势
     private var lockLayer: some View {
-        ZStack {
+        ZStack(alignment: .bottomLeading) {
             Color.black.opacity(0.001)
+                .contentShape(Rectangle())
+                .onTapGesture { toggleLockButton() }
 
-            if lockHintVisible {
-                VStack(spacing: 9) {
+            if lockButtonVisible {
+                Button {
+                    unlock()
+                } label: {
                     Image(systemName: "lock.fill")
-                        .font(.system(size: 24, weight: .medium))
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.white)
-                    Text("已锁定 · 长按 1 秒解除")
-                        .font(.system(size: 12.5, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.8))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
                 }
-                .padding(.horizontal, 22)
-                .padding(.vertical, 16)
-                .background(
-                    Color.black.opacity(0.55),
-                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-                )
+                .buttonStyle(.plain)
+                .glass(Circle(), style: .stage)
+                .padding(.leading, isLandscape ? 16 : 20)
+                .padding(.bottom, isLandscape ? 16 : 26)
+                .transition(.opacity)
             }
         }
-        .contentShape(Rectangle())
-        .onLongPressGesture(minimumDuration: 1) { unlock() }
         .transition(.opacity)
     }
 
@@ -731,8 +757,9 @@ private struct PlayerCore: View {
                 }
             }
             .padding(.trailing, isLandscape ? 16 : 20)
-            .padding(.bottom, isLandscape ? 116 : 126)
-            .transition(.opacity.combined(with: .scale(scale: 0.94, anchor: .bottomTrailing)))
+            // 面板底边正好落在倍速键原来的位置，看起来是从按钮里长出来的
+            .padding(.bottom, isLandscape ? 64 : 74)
+            .transition(.opacity.combined(with: .scale(scale: 0.86, anchor: .bottomTrailing)))
         }
     }
 
@@ -920,10 +947,6 @@ private struct PlayerCore: View {
         didRestore = true
         guard pendingResume > 5 else { return }
         model.seek(to: pendingResume)
-        flashHUD(
-            HUD(icon: "arrow.uturn.backward", text: "从 \(Fmt.time(pendingResume)) 继续", progress: nil),
-            duration: 1.6
-        )
     }
 
     private func maybeSaveProgress() {
