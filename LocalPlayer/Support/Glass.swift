@@ -49,17 +49,6 @@ struct GlassStyle {
         shadowOpacity: 0.32
     )
 
-    /// 播放条上的浅色底（比 control 再淡一点）
-    static let subtle = GlassStyle(
-        top: Color.white.opacity(0.075),
-        bottom: Color.white.opacity(0.025),
-        strokeTop: Color.white.opacity(0.24),
-        strokeBottom: Color.white.opacity(0.04),
-        shadowRadius: 8,
-        shadowY: 3,
-        shadowOpacity: 0.22
-    )
-
     /// 轻提示（toast / 倍速 / 导入进度）：比特意做小，比 stage 再透一档，
     /// 投影放大、染色降低，让它像浮在画面上而不是一块贴纸。
     static let hud = GlassStyle(

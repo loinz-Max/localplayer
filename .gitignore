@@ -11,7 +11,8 @@ Payload/
 *.dSYM.zip
 build.log
 release.log
-shots/
+# 只忽略仓库根目录的 CI 截图；preview/shots/ 是原型效果图，要进仓库
+/shots/
 
 # macOS
 .DS_Store

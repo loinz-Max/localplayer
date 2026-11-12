@@ -8,15 +8,15 @@
 - **第一次接手先读 `HANDOVER.md`**：进度、权限、待办、踩过的坑都在里面
 - 界面原型（设计唯一真相）：`preview/ui-v3.html`（资料库）+ `preview/ui-v5-player.html`（播放页），直接双击用浏览器打开；都支持 `?only=` 单屏查看
 - 设计说明：`DESIGN.md`
-- 规模：22 个 Swift 文件，约 3600 行；部署目标 iOS 17.0
+- 规模：25 个 Swift 文件，约 5400 行；部署目标 iOS 17.0
 
 ---
 
 ## 一、它现在是什么样
 
-**资料库页**：近黑背景（`#0A0A0B`）+ 自定义四层玻璃控件；顶栏四个 36pt 圆键（设置 / 导入 / 更多）+ 居中标题；双列网格，文件夹卡片排在视频前面；卡片是 16:9 缩略图 + 单行标题 + `时长 · 体积`；长按弹出锚定卡片的玻璃菜单（标记已看 / 重命名 / 删除）。
+**资料库页**：近黑背景（`#0A0A0B`，顶部压一层 2.8% 白雾让玻璃有东西可透）+ 自定义四层玻璃控件；顶栏四个 36pt 圆键（设置 / 导入 / 更多）+ 居中标题；双列网格，文件夹卡片排在视频前面；卡片是 16:9 缩略图 + 单行标题 + `时长 · 体积`，右下角标显示进度（看完是勾，看一半是百分比）；长按弹出锚定卡片的玻璃菜单（标记已看 / 重命名 / 移到文件夹 / 删除）。
 
-**播放页**：点屏唤出控件，按设置的时长淡出、暂停常驻。页面只有五样东西——左上关闭、右上列表、正中三圆（−10 / 播放 / +10，等大 58–62pt）、底部通栏进度条（时间文字在胶囊两端）、右下倍速键（点开是 110 宽的窄浮层，五档直选）。播放列表是右侧抽屉，展开时整层控件收起。原来的「播放设置抽屉」已取消，三项设置并进 App 设置页。
+**播放页**：点屏唤出控件，按设置的时长淡出、暂停常驻。页面只有六样东西——左上关闭、右上列表、正中三圆（−10 / 播放 / +10，等大 58–62pt）、底部通栏进度条（时间文字在胶囊两端）、左下防误触锁、右下倍速键（点开是窄浮层，五档直选）。「播完暂停」停在最后一帧时，中间键会变成重播图标。播放列表是右侧抽屉，展开时整层控件收起；原来单独的「播放设置抽屉」已取消，设置项并进 App 设置页。
 
 **能看图的三种方式**
 
@@ -34,28 +34,35 @@
 
 **导入**
 - 文件 App：系统选择器，可多选，能选 SMB / 网盘挂载目录
-- 相册：PhotosPicker 多选，文件名 `20261111_001.mov`
+- 相册：PHPicker 多选，**保留相册里的原文件名**（`IMG_0001.MOV`），不需要相册权限
 - 访达 / iTunes 文件共享直接拖进 Documents（`UIFileSharingEnabled` 已开）
 - 重名自动追加 ` (2)`，不覆盖
+- 文件 I/O 全在后台跑：底部出现「正在导入 3/8」的胶囊，导入期间照样能滑动、能点开视频；导完汇总说明几个改名、几个失败
 
 **资料库**
 - 文件夹浏览（面包屑返回）、新建文件夹
 - 文件夹长按：重命名（**只改显示名**，磁盘目录名不变）、删除文件夹（连里面的视频一起删，有确认）
-- 排序四选一：最近播放 / 名称 / 添加日期 / 文件大小，可切升降序
+- 排序支持最近播放 / 名称 / 添加日期 / 文件大小，可切升降序；**「⋯」菜单目前只露出名称与日期两档**
 - 视频长按菜单：标记已看（或取消）、重命名（**真改磁盘文件名**，进度与已看标记随之迁移）、移到文件夹、删除
 - 刷新缩略图、空状态引导
 
 **播放**
 - 断点续播（尾部 `min(15 秒, 总长 25%)` 视为看完并清进度）
-- 播放模式：列表循环 / 单集循环 / 播完暂停
+- 播放模式：列表循环 / 单集循环 / 播完暂停。播完会标记「已看」并留在最近播放里
 - 倍速五档 0.5 / 1 / 1.25 / 1.5 / 2，右下角浮层直选；倍速与模式**只在本次播放有效**，退出播放页即恢复默认
+- 长按倍速：设置里可选 1.5 / 2 / 2.5 / 3，按住 0.28 秒生效、松手复位
 - 画面比例：适应 / 填充 / 拉伸（起始值取设置里的「默认画面」）
-- 控件自动隐藏 2 / 4 / 6 秒、屏幕常亮、启动时锁定，三项都在设置页「播放界面」分组
-- **防误触**：设置里开了「启动时锁定」后进播放页即锁，长按画面 1 秒解除；锁定时单击/双击/滑动一律不响应
-- 手势：横滑调进度（跟手 + HUD 目标时间）、左半屏竖滑亮度、右半屏竖滑音量、长按 2× 快进（松手恢复）、双击左右 ±10 秒、双指捏合切画面比例
-- 后台播放 / 锁屏继续出声
+- 控件自动隐藏 2 / 4 / 6 秒、屏幕常亮，都在设置页「播放界面」
+- **防误触**：播放页左下角手动锁；锁上后点屏幕只亮出解锁键，点它解开，单击/双击/滑动一律不响应
+- 手势：横滑调进度（进度条跟手 + 小窗预览目标帧，松手才真 seek）、左半屏竖滑亮度、右半屏竖滑音量、长按加速、双击左右 ±10 秒、双指捏合切画面比例
+- 退出播放页把系统亮度恢复成进入前的值
+- 音频会话 `.playback` + 后台音频：切出去声音继续，**但还没接锁屏 / 控制中心的 Now Playing**
 
-**设置页**：默认倍速（五档）、默认播放模式、默认画面、断点续播 ｜ 播放界面（屏幕常亮 / 控件自动隐藏 / 启动时锁定）｜ 视频占用与数量、清理缩略图缓存 ｜ 版本与隐私说明。
+**设置页**（四级菜单，每项右侧带当前状态摘要）
+- 播放：断点续播、长按倍速、默认播放模式
+- 播放界面：资料库排版（网格 / 列表）、默认画面、控件自动隐藏、旋转锁定（跟随系统 / 竖屏 / 横屏）、屏幕常亮
+- 存储：视频占用、视频数量、清理缩略图缓存
+- 关于：版本号与隐私说明
 
 > 已明确不做：画中画、音轨切换、字幕、搜索、局域网传输、海报墙。
 
@@ -115,8 +122,10 @@ LocalPlayer/
 ├─ project.yml                      XcodeGen 工程描述（部署目标 iOS 17.0）
 ├─ Info.plist                       相册读/写用途说明、文件共享、后台音频
 ├─ .github/workflows/ios-ipa.yml    云端编译 + 模拟器截图 + 失败取错误
-├─ preview/ui-v3.html               ★ 界面原型（10 屏，唯一的设计真相）
-├─ preview/shots/                   原型效果图（非真实截图）
+├─ docs/acceptance-2026-11-12.md    0.0.1 那一轮实机验收的问题与结论（存档）
+├─ preview/ui-v3.html               ★ 资料库 / 设置的整体方案
+├─ preview/ui-v5-player.html        ★ 播放页改版（当前播放页按这个实现）
+├─ preview/ui-preview.html          最早的初版全屏预览，仅存档
 ├─ scripts/dev.sh                   本地一键：生成工程 → 编译 → 装机 → 带数据启动
 ├─ scripts/push-api.js              git 被代理挡住时，改用 Git Data API 推送
 └─ LocalPlayer/
@@ -126,26 +135,29 @@ LocalPlayer/
    │  ├─ PlayerModel.swift          AVPlayer 封装：时间轴 / 倍速 / 缓冲 / 失败态
    │  └─ VideoSurface.swift         AVPlayerLayer 的 SwiftUI 包装
    ├─ Services/
-   │  ├─ AppSettings.swift          默认倍速 / 模式 / 排序 / 续播（键名集中在此）
-   │  ├─ LibraryStore.swift         扫描、导入、删除、重命名、建文件夹
+   │  ├─ AppSettings.swift          长按倍速 / 模式 / 排序 / 续播 / 方向锁（键名集中在此）
+   │  ├─ LibraryStore.swift         扫描、导入、删除、重命名、建文件夹、目录监听
+   │  ├─ ImportService.swift        后台导入：copy / move + 进度与结果汇总
    │  ├─ ProgressStore.swift        进度 + 最近播放顺序 + 已看标记
-   │  ├─ ThumbnailLoader.swift      缩略图与时长缓存（NSCache + 并发去重）
-   │  └─ PhotoImporter.swift        相册导入，「日期_流水号」命名
+   │  └─ ThumbnailLoader.swift      缩略图与时长缓存（NSCache + 并发去重）
    ├─ Support/
    │  ├─ Palette.swift              色板（与 ui-v3.html 的 :root 一一对应）
    │  ├─ Glass.swift                ★ 四层玻璃配方 + 圆键
-   │  ├─ FrameGrabber.swift         抓帧存相册
+   │  ├─ HUD.swift                  ★ 统一轻提示胶囊 + 导入进度
    │  ├─ Formatters.swift           体积 / 时间格式化、重名去重
-   │  ├─ ScreenBrightness.swift     屏幕亮度
+   │  ├─ ScreenBrightness.swift     屏幕亮度（进播放页记录、退出恢复）
    │  ├─ SystemVolume.swift         系统音量（隐藏 MPVolumeView）
-   │  └─ DebugSeed.swift            仅 Debug：生成示例视频
+   │  ├─ OrientationController.swift 旋转锁定（AppDelegate mask + 几何更新）
+   │  ├─ ScrubPreviewer.swift       拖动进度时的抓帧预览（0.5 秒一档 + 节流）
+   │  └─ DebugSeed.swift            仅 Debug：示例视频、截图直达参数
    └─ Views/
       ├─ LibraryView.swift          资料库页（网格 + 长按 + 弹窗 + 导入）
-      ├─ LibraryMenus.swift         导入菜单 / 更多菜单 / 长按菜单
+      ├─ LibraryMenus.swift         导入菜单 / 更多菜单 / 长按菜单 / 移动弹窗
       ├─ Cards.swift                视频卡片 / 文件夹卡片 / 角标 / 缩略图
-      ├─ PlayerScreen.swift         播放页（顶栏 + 三圆 + 进度条 + 倍速浮层 + 手势）
-      ├─ PlayerPanels.swift         播放列表抽屉 / 倍速面板
-      └─ SettingsView.swift         设置页
+      ├─ PlayerScreen.swift         播放页（顶栏 + 三圆 + 进度条 + 手势 + 浮层）
+      ├─ PlayerPanels.swift         播放列表抽屉 / 倍速浮层
+      ├─ PhotoPickerSheet.swift     PHPicker 封装（拿原文件名、不需要相册权限）
+      └─ SettingsView.swift         四级设置页
 ```
 
 ---
@@ -159,7 +171,7 @@ LocalPlayer/
 | `-screen home\|folder\|player\|settings\|empty` | 启动后直达某一屏 |
 | `-screen foldermenu` | 直达首页并弹出第一个文件夹的长按菜单 |
 | `-screen move` | 直达首页并弹出「移到文件夹」弹窗 |
-| `-panel queue\|speed\|lock` | 进播放页后直接展开列表抽屉 / 倍速面板 / 锁定态（截图用） |
+| `-panel queue\|speed\|lock\|level\|boost` | 进播放页后直接展开列表抽屉 / 倍速浮层 / 锁定态 / 亮度条 / 长按倍速提示（截图用） |
 | `-seedDemo 1` | 现场生成 8 段 8 秒示例视频（4 段在「示例视频」文件夹，4 段在根目录） |
 | `-keepChrome 1` | 钉住播放控制栏，否则 4 秒后自动隐藏，截图拍不到 |
 | `-landscape 1` | 调 `requestGeometryUpdate` 真的把 App 转到横屏 |
@@ -176,7 +188,7 @@ LocalPlayer/
 | 播放进度 | UserDefaults `progress.snapshot.v1` | `positions` / `totals` / `lastPlayed` / `order`（最多 60 条）/ `watched` |
 | 文件夹显示名 | UserDefaults `folder.displayNames.v1` | 只影响界面，磁盘目录名与视频 ID 都不变 |
 | 设置 | UserDefaults | 键名集中在 `AppSettings.Key` |
-| 缩略图 | 内存 NSCache | 取第 5 秒帧，失败回退第 0 帧，再失败回退占位图标 |
+| 缩略图 | 内存 NSCache | 取「时长 12%，不早于 3 秒」那一帧（避开片头台标与广告），失败退 3 秒 → 首帧 → 占位图标 |
 
 视频重命名与「移到文件夹」会迁移进度与已看标记（ID 随路径变化）；删除视频或文件夹会一并清掉记录。
 
@@ -194,7 +206,9 @@ LocalPlayer/
 
 ## 八、继续开发前值得知道的几件事
 
-- **玻璃配方**在 `Support/Glass.swift`：`.ultraThinMaterial` → 渐变染色 → 0.75pt 上亮下暗描边 → 外投影；三种预设 `.control` / `.panel` / `.subtle`。用法 `.glass(Circle())` 或 `.glass(cornerRadius: 20)`。
+- **玻璃配方**在 `Support/Glass.swift`：`.ultraThinMaterial` → 渐变染色 → 0.75pt 上亮下暗描边 → 外投影；四套预设 `.control`（控件）/ `.panel`（菜单抽屉）/ `.stage`（播放页压画面）/ `.hud`（轻提示）。用法 `.glass(Circle())` 或 `.glass(cornerRadius: 20, style: .panel)`。
+- **纯黑底上玻璃永远是黑的**：没有内容可透，染色调得再透也看不出层次。资料库背景顶部特意压了一层 2.8% 白雾（`LibraryView.backgroundLayer`），别当成没用的一行删掉。染色调低时必须同步加亮描边，否则控件边界会散。
+- **轻提示只有一套**：`Support/HUD.swift` 的 `HUDLabel`，toast / 长按倍速 / 拖动预览的时间标签都用它，别再在页面里另写胶囊。
 - 刻意**没用** iOS 26 的 `glassEffect`：需要 Xcode 26 工具链，CI 跑在 `macos-15` 上不稳；原型本来就是自定义暗色玻璃，用 Material 能 1:1 还原。
 - **配色**在 `Palette.swift`，数值与 `preview/ui-v3.html` 的 `:root` 对应，改一处等于改两边。
 - 播放页的倍速与模式存在 `PlayerScreen` 这一层，切集不丢、退出即丢——这是设计，不是 bug。

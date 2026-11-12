@@ -20,7 +20,4 @@ enum Palette {
 
     /// 分隔线：rgba(255,255,255,.10)
     static let hairline = Color.white.opacity(0.10)
-
-    /// 菜单里那一层极淡的选中底色
-    static let rowHighlight = Color.white.opacity(0.08)
 }

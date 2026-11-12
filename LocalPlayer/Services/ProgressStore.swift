@@ -49,14 +49,6 @@ final class ProgressStore: ObservableObject {
         save()
     }
 
-    func clear(id: String) {
-        positions[id] = nil
-        totals[id] = nil
-        order.removeAll { $0 == id }
-        if lastPlayed == id { lastPlayed = order.first }
-        save()
-    }
-
     // MARK: - 已看标记
 
     func isWatched(_ id: String) -> Bool { watched.contains(id) }
