@@ -84,7 +84,7 @@ struct LibraryView: View {
 
     private let sidePadding: CGFloat = 16
     /// 长按浮起时的放大比例：原位置留空 + 轻微放大 + 投影，读作「这张被拎起来了」
-    private static let liftScale: CGFloat = 1.06
+    private static let liftScale: CGFloat = 1.09
 
     /// 浮层是按中心放大的，视觉边缘比原始 frame 各大出 (scale-1)/2，
     /// 菜单要按这个放大后的边缘让位，否则会贴在卡片上

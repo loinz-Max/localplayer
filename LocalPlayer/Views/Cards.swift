@@ -172,10 +172,17 @@ struct VideoCard: View {
                 }
                 .compositingGroup()
                 .shadow(
-                    color: .black.opacity(lifted ? 0.45 : 0),
-                    radius: lifted ? 16 : 0,
-                    y: lifted ? 9 : 0
+                    color: .black.opacity(lifted ? 0.55 : 0),
+                    radius: lifted ? 22 : 0,
+                    y: lifted ? 12 : 0
                 )
+                // 暗底上投影几乎看不见，浮起那一份再加一圈亮边，读作「被选中」
+                .overlay {
+                    if lifted {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.28), lineWidth: 1)
+                    }
+                }
 
             Text(item.displayName)
                 .font(.system(size: 15, weight: .semibold))
@@ -222,9 +229,9 @@ struct FolderCard: View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.white.opacity(0.06))
+                    .fill(Color.white.opacity(lifted ? 0.14 : 0.06))
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.75)
+                    .strokeBorder(Color.white.opacity(lifted ? 0.28 : 0.08), lineWidth: lifted ? 1 : 0.75)
                 Image(systemName: "folder.fill")
                     .font(.system(size: 30, weight: .regular))
                     .foregroundStyle(Palette.accent.opacity(0.9))
@@ -232,9 +239,9 @@ struct FolderCard: View {
             .aspectRatio(16.0 / 9.0, contentMode: .fit)
             .compositingGroup()
             .shadow(
-                color: .black.opacity(lifted ? 0.45 : 0),
-                radius: lifted ? 16 : 0,
-                y: lifted ? 9 : 0
+                color: .black.opacity(lifted ? 0.55 : 0),
+                radius: lifted ? 22 : 0,
+                y: lifted ? 12 : 0
             )
 
             Text(name)
