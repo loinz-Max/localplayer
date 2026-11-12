@@ -23,6 +23,13 @@
 - 汇总说清楚「导入 N 个，M 个同名已改名，K 个失败」，不再只报一个成功数
 - 删掉从未接上界面的搜索过滤代码（`LibraryStore.query`）
 
+### 维护
+
+- 文档收进 `docs/`（`HANDOVER` / `DESIGN` / 验收存档），根目录只留 README、CHANGELOG 与构建配置
+- 交接文档重写成可独立接手的版本：环境与权限、四步开工、待办分级、按现象索引的踩坑表
+- 修正 `.gitignore` 里 `shots/` 会匹配任意层级、误伤 `preview` 下同名目录的规则
+- 删三处死代码：`Palette.rowHighlight`、`GlassStyle.subtle`、`ProgressStore.clear(id:)`
+
 ## 0.0.1 — 2026-11-12
 
 首个可日常使用的版本。SwiftUI + AVPlayer 的本地视频播放器，零第三方依赖，不联网、不上传。

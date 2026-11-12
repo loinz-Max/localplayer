@@ -5,9 +5,11 @@
 视频只存在 App 的 `Documents` 目录里，不联网、不登录、不上传任何服务器。
 
 - 仓库：<https://github.com/loinz-Max/localplayer>（public）
-- **第一次接手先读 `HANDOVER.md`**：进度、权限、待办、踩过的坑都在里面
-- 界面原型（设计唯一真相）：`preview/ui-v3.html`（资料库）+ `preview/ui-v5-player.html`（播放页），直接双击用浏览器打开；都支持 `?only=` 单屏查看
-- 设计说明：`DESIGN.md`
+- **第一次接手先读 [`docs/HANDOVER.md`](docs/HANDOVER.md)**：进度、权限、待办、踩过的坑都在里面
+- 设计规格：[`docs/DESIGN.md`](docs/DESIGN.md)
+- 界面原型：`preview/` 下的两个 HTML，双击用浏览器打开（支持 `?only=` 单屏查看）。
+  **原型已经落后于实现，以代码为准** —— 具体差在哪见 `docs/DESIGN.md` 第 8 节
+- 验收存档：[`docs/ACCEPTANCE-2026-11-12.md`](docs/ACCEPTANCE-2026-11-12.md)
 - 规模：25 个 Swift 文件，约 5400 行；部署目标 iOS 17.0
 
 ---
@@ -64,7 +66,8 @@
 - 存储：视频占用、视频数量、清理缩略图缓存
 - 关于：版本号与隐私说明
 
-> 已明确不做：画中画、音轨切换、字幕、搜索、局域网传输、海报墙。
+> **暂未实现**：锁屏 / 控制中心的媒体控制、画中画（都列在交接文档的 P1）。
+> **已明确不做**：音轨切换、字幕、搜索、局域网传输、海报墙。
 
 ---
 
@@ -118,14 +121,19 @@ bash scripts/dev.sh
 ## 四、目录结构
 
 ```
-LocalPlayer/
+localplayer/
+├─ README.md                        本文件：功能范围、怎么跑、已知边界
 ├─ project.yml                      XcodeGen 工程描述（部署目标 iOS 17.0）
-├─ Info.plist                       相册读/写用途说明、文件共享、后台音频
+├─ Info.plist                       相册读取用途说明、文件共享、后台音频
+├─ CHANGELOG.md                     更新记录
 ├─ .github/workflows/ios-ipa.yml    云端编译 + 模拟器截图 + 失败取错误
-├─ docs/acceptance-2026-11-12.md    0.0.1 那一轮实机验收的问题与结论（存档）
-├─ preview/ui-v3.html               ★ 资料库 / 设置的整体方案
-├─ preview/ui-v5-player.html        ★ 播放页改版（当前播放页按这个实现）
-├─ preview/ui-preview.html          最早的初版全屏预览，仅存档
+├─ docs/
+│  ├─ HANDOVER.md                   ★ 交接文档：进度 / 权限 / 待办 / 坑
+│  ├─ DESIGN.md                     ★ 视觉与交互规格
+│  └─ ACCEPTANCE-2026-11-12.md      0.0.1 那轮实机验收（存档）
+├─ preview/ui-v3.html               资料库 / 设置的整体方案
+├─ preview/ui-v5-player.html        播放页改版
+├─ preview/ui-preview.html          最早的初版预览，仅存档
 ├─ scripts/dev.sh                   本地一键：生成工程 → 编译 → 装机 → 带数据启动
 ├─ scripts/push-api.js              git 被代理挡住时，改用 Git Data API 推送
 └─ LocalPlayer/
@@ -141,7 +149,7 @@ LocalPlayer/
    │  ├─ ProgressStore.swift        进度 + 最近播放顺序 + 已看标记
    │  └─ ThumbnailLoader.swift      缩略图与时长缓存（NSCache + 并发去重）
    ├─ Support/
-   │  ├─ Palette.swift              色板（与 ui-v3.html 的 :root 一一对应）
+   │  ├─ Palette.swift              色板（所有颜色值集中在此）
    │  ├─ Glass.swift                ★ 四层玻璃配方 + 圆键
    │  ├─ HUD.swift                  ★ 统一轻提示胶囊 + 导入进度
    │  ├─ Formatters.swift           体积 / 时间格式化、重名去重
