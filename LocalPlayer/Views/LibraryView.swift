@@ -85,6 +85,13 @@ struct LibraryView: View {
     private let sidePadding: CGFloat = 16
     /// 长按浮起时的放大比例：原位置留空 + 轻微放大 + 投影，读作「这张被拎起来了」
     private static let liftScale: CGFloat = 1.06
+
+    /// 浮层是按中心放大的，视觉边缘比原始 frame 各大出 (scale-1)/2，
+    /// 菜单要按这个放大后的边缘让位，否则会贴在卡片上
+    private func liftedRect(_ rect: CGRect) -> CGRect {
+        let growth = (Self.liftScale - 1) / 2
+        return rect.insetBy(dx: -rect.width * growth, dy: -rect.height * growth)
+    }
     private let columnSpacing: CGFloat = 12
     private let rowSpacing: CGFloat = 18
 
@@ -943,10 +950,11 @@ struct LibraryView: View {
     private func cardMenu(_ target: CardTarget, screen: CGSize) -> some View {
         let width = CardMenu.width
         let height = CardMenu.estimatedHeight
-        let x = min(max(sidePadding, target.rect.minX), max(sidePadding, screen.width - sidePadding - width))
-        var y = target.rect.maxY + 8
+        let rect = liftedRect(target.rect)
+        let x = min(max(sidePadding, rect.minX), max(sidePadding, screen.width - sidePadding - width))
+        var y = rect.maxY + 8
         if y + height > screen.height - 16 {
-            y = target.rect.minY - height - 8
+            y = rect.minY - height - 8
         }
         y = max(16, y)
 
@@ -978,10 +986,11 @@ struct LibraryView: View {
     private func folderMenu(_ target: FolderTarget, screen: CGSize) -> some View {
         let width = FolderMenu.width
         let height = FolderMenu.estimatedHeight
-        let x = min(max(sidePadding, target.rect.minX), max(sidePadding, screen.width - sidePadding - width))
-        var y = target.rect.maxY + 8
+        let rect = liftedRect(target.rect)
+        let x = min(max(sidePadding, rect.minX), max(sidePadding, screen.width - sidePadding - width))
+        var y = rect.maxY + 8
         if y + height > screen.height - 16 {
-            y = target.rect.minY - height - 8
+            y = rect.minY - height - 8
         }
         y = max(16, y)
 
