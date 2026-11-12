@@ -74,7 +74,7 @@ jobs:
       - name: 启动模拟器并逐屏截图
         env:
           UDID: ${{ steps.sim.outputs.udid }}
-          BUNDLE: com.example.localplayer
+          BUNDLE: com.loinzmax.localplayer
         run: |
           set -x
           xcrun simctl boot "$UDID" || true

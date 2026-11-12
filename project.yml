@@ -1,6 +1,6 @@
 name: LocalPlayer
 options:
-  bundleIdPrefix: com.example
+  bundleIdPrefix: com.loinzmax
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -21,7 +21,7 @@ targets:
       - path: LocalPlayer
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.localplayer
+        PRODUCT_BUNDLE_IDENTIFIER: com.loinzmax.localplayer
         PRODUCT_NAME: LocalPlayer
         INFOPLIST_FILE: Info.plist
         GENERATE_INFOPLIST_FILE: NO

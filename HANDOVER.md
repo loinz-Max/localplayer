@@ -162,7 +162,7 @@ push 到 `main` 会自动触发 `.github/workflows/ios-ipa.yml`，两个 job：
 ## 7. 待办（按优先级）
 
 1. **真机第二轮验收**：重点看液态玻璃的实际观感、亮度/音量顶部横条、左下角锁定键、方向锁定是否真的按设置转。
-2. **bundle id 改唯一**：现在是 `com.example.localplayer`，免费证书撞车会报「App ID 不可用」。建议改成 `com.loinzmax.localplayer`（改 `project.yml` 的 `PRODUCT_BUNDLE_IDENTIFIER` 后重跑 CI）。
+2. ~~bundle id 改唯一~~：已改成 `com.loinzmax.localplayer`（`project.yml` 两处 + workflow 的 `BUNDLE` 都同步了）。注意这是**换了一个新 App**：旧包 `com.example.localplayer` 里的视频与进度不会迁移，需重新导入。
 3. ~~锁定方向~~：已做——设置 →「播放界面」→ 旋转锁定（跟随系统 / 竖屏锁定 / 横屏锁定），`OrientationController` + `AppDelegate` 生效。
 4. **iOS 16 兼容**（可选）：当前部署目标 17.0；要在旧机装需降到 16，并给 `MagnifyGesture`、`requestGeometryUpdate` 加可用性判断。
 5. ~~抓帧存相册~~：按需求删掉了（`FrameGrabber.swift` 与 `NSPhotoLibraryAddUsageDescription` 都已移除），不要再加回来。
