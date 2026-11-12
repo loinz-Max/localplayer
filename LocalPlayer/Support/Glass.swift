@@ -1,60 +1,77 @@
 import SwiftUI
 
-/// 四层玻璃配方（对应原型里的 .glass / .menu）：
-///   1. .ultraThinMaterial 提供真实的背景模糊
-///   2. 一层渐变染色，把材质压到合适的明度
-///   3. 0.75pt 渐变描边，上沿亮、下沿几乎看不见
-///   4. 外投影，让整块浮起来
+/// 液态玻璃配方（对齐 iOS 26 起的 Liquid Glass 观感）：
+///   1. `.ultraThinMaterial` —— 真实背景模糊
+///   2. 染色层 —— 把材质压到目标明度（浅底用白、压画面用黑）
+///   3. 镜面高光 —— 左上角的径向高光，让平面看起来是"凸"的
+///   4. 底部厚度 —— 下沿的暗色渐变，制造玻璃的体感
+///   5. 边缘光 —— 1pt 渐变描边，上沿最亮、下沿几乎消失
+///   6. 外投影 —— 让整块浮在背景之上
+///
+/// 不直接用原生 `glassEffect`：那需要 Xcode 26 / iOS 26 SDK 才编得过，
+/// 而 CI 跑在 macos-15 上；这六层在任何 iOS 17+ 上都能还原同样的观感。
 struct GlassStyle {
-    var top: Color
-    var bottom: Color
-    var strokeTop: Color
-    var strokeBottom: Color
+    var tintTop: Color
+    var tintBottom: Color
+    /// 镜面高光强度 0…1
+    var sheen: Double
+    var rimTop: Color
+    var rimBottom: Color
+    /// 底部内侧厚度 0…1
+    var depth: Double
     var shadowRadius: CGFloat
     var shadowY: CGFloat
     var shadowOpacity: Double
 
-    /// 控件：按钮、运输胶囊、进度条胶囊
+    /// 资料库这类深色底上的圆键、胶囊
     static let control = GlassStyle(
-        top: Color.white.opacity(0.13),
-        bottom: Color.white.opacity(0.05),
-        strokeTop: Color.white.opacity(0.22),
-        strokeBottom: Color.white.opacity(0.05),
-        shadowRadius: 12,
-        shadowY: 4,
-        shadowOpacity: 0.30
+        tintTop: Color.white.opacity(0.17),
+        tintBottom: Color.white.opacity(0.07),
+        sheen: 0.24,
+        rimTop: Color.white.opacity(0.62),
+        rimBottom: Color.white.opacity(0.12),
+        depth: 0.10,
+        shadowRadius: 14,
+        shadowY: 5,
+        shadowOpacity: 0.28
     )
 
     /// 菜单、抽屉、弹窗
     static let panel = GlassStyle(
-        top: Color.black.opacity(0.34),
-        bottom: Color.black.opacity(0.46),
-        strokeTop: Color.white.opacity(0.18),
-        strokeBottom: Color.white.opacity(0.04),
-        shadowRadius: 28,
-        shadowY: 10,
-        shadowOpacity: 0.45
+        tintTop: Color.black.opacity(0.30),
+        tintBottom: Color.black.opacity(0.44),
+        sheen: 0.16,
+        rimTop: Color.white.opacity(0.52),
+        rimBottom: Color.white.opacity(0.08),
+        depth: 0.22,
+        shadowRadius: 30,
+        shadowY: 12,
+        shadowOpacity: 0.48
     )
 
-    /// 播放页：压在视频画面上的控件。control 是白色染色，压在亮画面上等于加亮，
-    /// 白图标直接糊掉；这里换成暗色染色，图标才有对比度。
+    /// 播放页：压在视频画面上。浅色染色在亮画面上会糊掉，这里用暗色，
+    /// 但边缘光要更亮——那是液态玻璃最好认的特征。
     static let stage = GlassStyle(
-        top: Color.black.opacity(0.38),
-        bottom: Color.black.opacity(0.52),
-        strokeTop: Color.white.opacity(0.22),
-        strokeBottom: Color.white.opacity(0.05),
-        shadowRadius: 12,
-        shadowY: 4,
-        shadowOpacity: 0.35
+        tintTop: Color.black.opacity(0.24),
+        tintBottom: Color.black.opacity(0.40),
+        sheen: 0.20,
+        rimTop: Color.white.opacity(0.66),
+        rimBottom: Color.white.opacity(0.10),
+        depth: 0.20,
+        shadowRadius: 16,
+        shadowY: 6,
+        shadowOpacity: 0.38
     )
 
-    /// 播放条上的浅色底（比 control 再淡一点）
+    /// 更淡一档，用于进度条这类大面积浅底
     static let subtle = GlassStyle(
-        top: Color.white.opacity(0.10),
-        bottom: Color.white.opacity(0.04),
-        strokeTop: Color.white.opacity(0.18),
-        strokeBottom: Color.white.opacity(0.04),
-        shadowRadius: 8,
+        tintTop: Color.white.opacity(0.13),
+        tintBottom: Color.white.opacity(0.05),
+        sheen: 0.18,
+        rimTop: Color.white.opacity(0.50),
+        rimBottom: Color.white.opacity(0.08),
+        depth: 0.08,
+        shadowRadius: 10,
         shadowY: 3,
         shadowOpacity: 0.24
     )
@@ -70,8 +87,29 @@ private struct GlassFill<S: InsettableShape>: View {
             .overlay {
                 shape.fill(
                     LinearGradient(
-                        colors: [style.top, style.bottom],
+                        colors: [style.tintTop, style.tintBottom],
                         startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+            }
+            .overlay {
+                // 镜面高光：从左上角铺开，边界要软
+                shape.fill(
+                    RadialGradient(
+                        colors: [Color.white.opacity(style.sheen), Color.white.opacity(0)],
+                        center: .topLeading,
+                        startRadius: 0,
+                        endRadius: 110
+                    )
+                )
+            }
+            .overlay {
+                // 底部厚度：越往下越沉
+                shape.fill(
+                    LinearGradient(
+                        colors: [Color.clear, Color.black.opacity(style.depth)],
+                        startPoint: .center,
                         endPoint: .bottom
                     )
                 )
@@ -79,11 +117,11 @@ private struct GlassFill<S: InsettableShape>: View {
             .overlay {
                 shape.strokeBorder(
                     LinearGradient(
-                        colors: [style.strokeTop, style.strokeBottom],
-                        startPoint: .top,
-                        endPoint: .bottom
+                        colors: [style.rimTop, style.rimBottom],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     ),
-                    lineWidth: 0.75
+                    lineWidth: 1
                 )
             }
             .compositingGroup()
@@ -96,7 +134,7 @@ private struct GlassFill<S: InsettableShape>: View {
 }
 
 extension View {
-    /// 给任意形状套上玻璃底。用法：`.glass(Circle())` / `.glass(RoundedRectangle(cornerRadius: 20, style: .continuous))`
+    /// 给任意形状套上液态玻璃底。用法：`.glass(Circle())` / `.glass(cornerRadius: 20)`
     func glass<S: InsettableShape>(_ shape: S, style: GlassStyle = .control) -> some View {
         background { GlassFill(shape: shape, style: style) }
     }

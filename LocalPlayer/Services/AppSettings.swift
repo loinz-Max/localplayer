@@ -14,7 +14,21 @@ final class AppSettings: ObservableObject {
         static let autoHideDelay = "autoHideDelay"
         static let defaultGravity = "defaultGravity"
         static let keepAwake = "keepAwake"
-        static let lockOnStart = "lockOnStart"
+        static let orientationLock = "orientationLock"
+    }
+
+    enum Orientation: String, CaseIterable, Identifiable {
+        case system, portrait, landscape
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .system: return "跟随系统"
+            case .portrait: return "竖屏锁定"
+            case .landscape: return "横屏锁定"
+            }
+        }
     }
 
     private let d = UserDefaults.standard
@@ -82,12 +96,20 @@ final class AppSettings: ObservableObject {
         set { write(Key.keepAwake, newValue) }
     }
 
-    /// 防误触：进播放页就锁上控件，长按画面 1 秒解除
-    var lockOnStart: Bool {
-        get { read(Key.lockOnStart, false) }
-        set { write(Key.lockOnStart, newValue) }
+    /// 方向锁定：跟随系统 / 竖屏 / 横屏
+    var orientationLock: Orientation {
+        get { Orientation(rawValue: read(Key.orientationLock, Orientation.system.rawValue)) ?? .system }
+        set {
+            write(Key.orientationLock, newValue.rawValue)
+            OrientationController.shared.apply(newValue)
+        }
     }
-}
+
+    /// 播放页这类地方拿不到 EnvironmentObject 时，直接读存档
+    static func storedOrientation() -> Orientation {
+        let raw = UserDefaults.standard.string(forKey: Key.orientationLock) ?? ""
+        return Orientation(rawValue: raw) ?? .system
+    }}
 
 // MARK: - 播放页的初始值
 

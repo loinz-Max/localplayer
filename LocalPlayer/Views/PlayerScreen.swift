@@ -58,6 +58,13 @@ private struct HUD: Equatable {
     var progress: Double?
 }
 
+/// 亮度 / 音量的顶部横条
+private struct LevelHUD: Equatable {
+    var icon: String
+    /// 0…1
+    var value: Double
+}
+
 // MARK: - 播放页主体
 
 private struct PlayerCore: View {
@@ -89,6 +96,10 @@ private struct PlayerCore: View {
 
     @State private var hud: HUD?
     @State private var hudToken = 0
+
+    /// 亮度 / 音量：顶部居中的横向长条，不占画面中间
+    @State private var level: LevelHUD?
+    @State private var levelToken = 0
 
     @State private var dragMode: DragMode = .none
     @State private var dragStartTime: Double = 0
@@ -173,6 +184,10 @@ private struct PlayerCore: View {
 
             if boosting {
                 boostHint
+            }
+
+            if let level {
+                levelBar(level)
             }
 
             if touchLocked {
@@ -306,20 +321,15 @@ private struct PlayerCore: View {
             let delta = -value.translation.height / max(size.height * 0.6, 1)
             let next = min(max(brightnessStart + delta, 0), 1)
             ScreenBrightness.set(next)
-            hud = HUD(
-                icon: "sun.max.fill",
-                text: "\(Int((Double(next) * 100).rounded()))%",
-                progress: Double(next)
-            )
+            level = LevelHUD(icon: "sun.max.fill", value: Double(next))
 
         case .volume:
             let delta = Float(-value.translation.height / max(size.height * 0.6, 1))
             let next = min(max(volumeStart + delta, 0), 1)
             SystemVolume.shared.set(next)
-            hud = HUD(
+            level = LevelHUD(
                 icon: next > 0.01 ? "speaker.wave.2.fill" : "speaker.slash.fill",
-                text: "\(Int((next * 100).rounded()))%",
-                progress: Double(next)
+                value: Double(next)
             )
 
         case .none:
@@ -330,9 +340,22 @@ private struct PlayerCore: View {
     private func handleDragEnded() {
         if dragMode == .seek {
             model.seek(to: seekTarget)
+            fadeHUD(after: 0.6)
+        }
+        if dragMode == .brightness || dragMode == .volume {
+            fadeLevel(after: 0.5)
         }
         dragMode = .none
-        fadeHUD(after: 0.6)
+    }
+
+    private func fadeLevel(after delay: Double) {
+        levelToken += 1
+        let token = levelToken
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            if levelToken == token {
+                withAnimation(.easeOut(duration: 0.25)) { level = nil }
+            }
+        }
     }
 
     /// 长按 = 2× 快进（锁定时不响应）
@@ -576,15 +599,34 @@ private struct PlayerCore: View {
     }
 
     private var bottomBar: some View {
-        VStack(alignment: .trailing, spacing: 12) {
-            // 面板展开时不再显示倍速键，避免两个入口同屏
-            if !speedOpen {
-                speedButton
+        VStack(spacing: 12) {
+            HStack(spacing: 0) {
+                lockButton
+                Spacer(minLength: 0)
+                // 面板展开时不再显示倍速键，避免两个入口同屏
+                if !speedOpen {
+                    speedButton
+                }
             }
             progressCapsule
         }
         .padding(.horizontal, isLandscape ? 16 : 20)
         .padding(.bottom, isLandscape ? 16 : 26)
+    }
+
+    /// 左下角的防误触锁，与右下角倍速键对称
+    private var lockButton: some View {
+        Button {
+            touchLocked = true
+        } label: {
+            Image(systemName: "lock.open")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .glass(Circle(), style: .stage)
     }
 
     private var speedButton: some View {
@@ -733,6 +775,45 @@ private struct PlayerCore: View {
         .transition(.opacity)
     }
 
+    /// 亮度 / 音量提示：屏幕顶部居中、横向长条，只显示图标 + 进度 + 百分比
+    private func levelBar(_ level: LevelHUD) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: level.icon)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 16)
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.white.opacity(0.26))
+                        Capsule()
+                            .fill(Color.white)
+                            .frame(
+                                width: max(3, geo.size.width * CGFloat(min(max(level.value, 0), 1)))
+                            )
+                    }
+                }
+                .frame(height: 5)
+
+                Text("\(Int((level.value * 100).rounded()))")
+                    .font(.system(size: 11, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(.white.opacity(0.92))
+                    .frame(width: 24, alignment: .trailing)
+            }
+            .padding(.horizontal, 14)
+            .frame(width: 224, height: 34)
+            .glass(Capsule(), style: .stage)
+            .padding(.top, isLandscape ? 12 : 52)
+
+            Spacer(minLength: 0)
+        }
+        .allowsHitTesting(false)
+        .transition(.opacity)
+    }
+
     /// 长按 2× 的提示：水平居中、顶栏下方一点，做小，绝不压中部按钮
     private var boostHint: some View {
         VStack(spacing: 0) {
@@ -836,11 +917,7 @@ private struct PlayerCore: View {
         UIApplication.shared.isIdleTimerDisabled = settings.keepAwake
         showChrome(persistent: false)
 
-        // 防误触预设：进播放页即锁上，长按画面 1 秒解除
-        if settings.lockOnStart {
-            touchLocked = true
-            engageLock()
-        }
+        // 防误触改成左下角手动锁，不再进页面自动锁
         #if DEBUG
         DebugSeed.forceLandscapeIfRequested()
         // 截图用：直接展开某个浮层，省得截图脚本去点按钮

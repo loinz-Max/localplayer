@@ -3,6 +3,9 @@ import AVFoundation
 
 @main
 struct LocalPlayerApp: App {
+    /// 方向锁要靠 AppDelegate 的 supportedInterfaceOrientationsFor 才生效
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     @StateObject private var library = LibraryStore()
     @StateObject private var progress = ProgressStore()
     @StateObject private var settings = AppSettings()
@@ -27,7 +30,10 @@ struct LocalPlayerApp: App {
                 .environmentObject(settings)
                 .preferredColorScheme(.dark)
                 .tint(.accentColor)
-                .onAppear { library.reload() }
+                .onAppear {
+                    library.reload()
+                    OrientationController.shared.restore()
+                }
         }
     }
 }

@@ -160,20 +160,20 @@ struct SettingsView: View {
 
             divider
 
-            row {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("启动时锁定")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Palette.text)
-                    Text("进播放页就锁上，长按画面 1 秒解除")
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(Palette.tertiaryText)
+            // 防误触不再预设成"进页面就锁"，改成播放页左下角的手动锁
+            VStack(alignment: .leading, spacing: 8) {
+                Text("旋转锁定")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Palette.text)
+
+                SettingsSegment(
+                    titles: AppSettings.Orientation.allCases.map { $0.title },
+                    selected: AppSettings.Orientation.allCases.firstIndex(of: settings.orientationLock) ?? 0
+                ) { index in
+                    settings.orientationLock = AppSettings.Orientation.allCases[index]
                 }
-                Spacer()
-                Toggle("", isOn: boolBinding(\.lockOnStart))
-                    .labelsHidden()
-                    .tint(Palette.accent)
             }
+            .padding(.vertical, 4)
         }
     }
 
