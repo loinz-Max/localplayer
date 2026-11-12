@@ -99,6 +99,8 @@ private struct PlayerCore: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     @StateObject private var model: PlayerModel
+    /// 锁屏 / 控制中心 / AirPods 的「正在播放」
+    private let nowPlaying = NowPlayingService.shared
 
     @State private var chromeVisible = true
     @State private var hideToken = 0
@@ -229,6 +231,7 @@ private struct PlayerCore: View {
         .onDisappear { teardown() }
         .onChange(of: rate) { _, value in
             model.setRate(Float(value))
+            pushNowPlaying(force: true)
         }
         .onChange(of: settings.keepAwake) { _, value in
             UIApplication.shared.isIdleTimerDisabled = value
@@ -246,6 +249,7 @@ private struct PlayerCore: View {
         }
         .onChange(of: model.duration) { _, value in
             if !didRestore, value > 0 { restorePosition() }
+            pushNowPlaying(force: true)
         }
         .onChange(of: model.isPlaying) { _, playing in
             if playing {
@@ -253,9 +257,11 @@ private struct PlayerCore: View {
             } else {
                 showChrome(persistent: true)
             }
+            pushNowPlaying(force: true)
         }
         .onChange(of: model.currentTime) { _, _ in
             maybeSaveProgress()
+            pushNowPlaying()
         }
     }
 
@@ -975,6 +981,15 @@ private struct PlayerCore: View {
         UIApplication.shared.isIdleTimerDisabled = settings.keepAwake
         showChrome(persistent: false)
 
+        wireNowPlaying()
+        nowPlaying.begin(
+            item: item,
+            elapsed: model.currentTime,
+            duration: model.duration,
+            isPlaying: model.isPlaying,
+            rate: model.rate
+        )
+
         // 防误触改成左下角手动锁，不再进页面自动锁
         #if DEBUG
         DebugSeed.forceLandscapeIfRequested()
@@ -1011,11 +1026,53 @@ private struct PlayerCore: View {
         progress.update(id: item.id, time: model.currentTime, total: model.duration)
     }
 
+    // MARK: - 锁屏 / 控制中心
+
+    /// 系统遥控命令转发给播放器；队列操作按当前 item 在 queue 里的位置算
+    private func wireNowPlaying() {
+        let player = model
+        nowPlaying.onPlay = { [weak player] in player?.play() }
+        nowPlaying.onPause = { [weak player] in player?.pause() }
+        nowPlaying.onToggle = { [weak player] in player?.togglePlay() }
+        nowPlaying.onSkip = { [weak player] delta in player?.skip(delta) }
+        nowPlaying.onSeek = { [weak player] position in player?.seek(to: position) }
+
+        let queue = self.queue
+        let currentID = item.id
+        let advance = onAdvance
+
+        nowPlaying.onNext = {
+            guard let index = queue.firstIndex(where: { $0.id == currentID }) else { return }
+            let nextIndex = index + 1
+            let next = nextIndex < queue.count ? queue[nextIndex] : queue.first
+            if let next, next.id != currentID { advance(next) }
+        }
+
+        nowPlaying.onPrevious = {
+            guard let index = queue.firstIndex(where: { $0.id == currentID }) else { return }
+            let previousIndex = index - 1
+            let previous = previousIndex >= 0 ? queue[previousIndex] : queue.last
+            if let previous, previous.id != currentID { advance(previous) }
+        }
+    }
+
+    /// 把当前状态写给系统；进度按 1.2 秒 / 3 秒节流，状态变化时强制刷
+    private func pushNowPlaying(force: Bool = false) {
+        nowPlaying.update(
+            elapsed: model.currentTime,
+            duration: model.duration,
+            isPlaying: model.isPlaying,
+            rate: model.rate,
+            force: force
+        )
+    }
+
     private func teardown() {
         if model.duration > 1 {
             progress.update(id: item.id, time: model.currentTime, total: model.duration)
         }
         UIApplication.shared.isIdleTimerDisabled = false
+        nowPlaying.deactivate()
         model.cleanup()
     }
 
