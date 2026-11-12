@@ -167,7 +167,9 @@ localplayer/
 │  └─ shots/                     最初交接包里的 4 张原型效果图（未纳入版本管理）
 ├─ scripts/
 │  ├─ dev.sh                     有 Mac 时一键编译装机
-│  └─ push-api.js                git 通道被挡时的推送兜底
+│  ├─ push-api.js                git 通道被挡时的推送兜底
+│  ├─ gh-helper.js               查 CI 运行、下载 artifact（`node scripts/gh-helper.js runs|artifacts <id>|download <id> <out>`）
+│  └─ publish-ipa.js             把 ipa 传成 Release 资产，得到免登录直链
 └─ LocalPlayer/
    ├─ App/          入口、EnvironmentObject 注入、AVAudioSession
    ├─ Models/       VideoItem / SortKey / PlayMode
@@ -353,7 +355,15 @@ localplayer/
 
 **现在要装哪一版**
 
-Actions 里最新一次绿的 run（截至 2026-11-12 22:30 是 `43234223189`）→ 页面底部 Artifacts → `LocalPlayer-unsigned-ipa`（是 zip，解压后得到 `LocalPlayer.ipa`）。
+发布页直链（不用登录 GitHub，手机浏览器也能直接下）：
+
+```
+https://github.com/loinz-Max/localplayer/releases/download/v0.0.2/LocalPlayer-0.0.2-unsigned.ipa
+```
+
+- Release 页：https://github.com/loinz-Max/localplayer/releases
+- 想从 Actions 自己拿：最新一次绿的 run → 页面底部 Artifacts → `LocalPlayer-unsigned-ipa`（是 zip，解压后得到 `.ipa`）。
+- 发新包时用 `node scripts/publish-ipa.js <ipa路径> <tag> <资产名>`，会把 ipa 传成 release 资产并打印直链。
 
 - artifact **30 天自动过期**，要留档就下到本地。
 - 只要 bundle id 不变，覆盖安装就能保住视频与进度；不需要先卸载。

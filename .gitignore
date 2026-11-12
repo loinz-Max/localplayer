@@ -17,3 +17,6 @@ release.log
 # macOS
 .DS_Store
 .ci/
+
+# 本地打包临时产物
+/out/
