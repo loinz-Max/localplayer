@@ -293,52 +293,60 @@ struct LibraryView: View {
     // MARK: - 网格
 
     private var content: some View {
-        ScrollView {
+        Group {
             if library.subfolders.isEmpty && sortedVideos.isEmpty {
                 emptyState
             } else {
-                LazyVGrid(
-                    columns: [
-                        GridItem(.flexible(), spacing: columnSpacing),
-                        GridItem(.flexible(), spacing: columnSpacing)
-                    ],
-                    alignment: .leading,
-                    spacing: rowSpacing
-                ) {
-                    ForEach(library.subfolders, id: \.self) { folder in
-                        FolderCard(
-                            name: library.displayName(forFolder: folder),
-                            count: count(in: folder)
-                        )
-                        .background {
-                            GeometryReader { geo in
-                                Color.clear.preference(
-                                    key: FolderFrameKey.self,
-                                    value: [folder: geo.frame(in: .named("root"))]
-                                )
-                            }
-                        }
-                        .onTapGesture {
-                            if folderTarget != nil || target != nil {
-                                if Date().timeIntervalSince(menuGuard) > 0.35 { closeMenus() }
-                            } else {
-                                library.currentFolder = folder
-                            }
-                        }
-                        .onLongPressGesture(minimumDuration: 0.38) {
-                            openFolderMenu(folder)
+                grid
+            }
+        }
+        .onPreferenceChange(CardFrameKey.self) { cardFrames = $0 }
+        .onPreferenceChange(FolderFrameKey.self) { folderFrames = $0 }
+    }
+
+    private var grid: some View {
+        ScrollView {
+            LazyVGrid(
+                columns: [
+                    GridItem(.flexible(), spacing: columnSpacing),
+                    GridItem(.flexible(), spacing: columnSpacing)
+                ],
+                alignment: .leading,
+                spacing: rowSpacing
+            ) {
+                ForEach(library.subfolders, id: \.self) { folder in
+                    FolderCard(
+                        name: library.displayName(forFolder: folder),
+                        count: count(in: folder)
+                    )
+                    .background {
+                        GeometryReader { geo in
+                            Color.clear.preference(
+                                key: FolderFrameKey.self,
+                                value: [folder: geo.frame(in: .named("root"))]
+                            )
                         }
                     }
-
-                    ForEach(sortedVideos) { item in
-                        card(item)
+                    .onTapGesture {
+                        if folderTarget != nil || target != nil {
+                            if Date().timeIntervalSince(menuGuard) > 0.35 { closeMenus() }
+                        } else {
+                            library.currentFolder = folder
+                        }
+                    }
+                    .onLongPressGesture(minimumDuration: 0.38) {
+                        openFolderMenu(folder)
                     }
                 }
-                .id(refreshToken)
-                .padding(.horizontal, sidePadding)
-                .padding(.top, 14)
-                .padding(.bottom, 40)
+
+                ForEach(sortedVideos) { item in
+                    card(item)
+                }
             }
+            .id(refreshToken)
+            .padding(.horizontal, sidePadding)
+            .padding(.top, 14)
+            .padding(.bottom, 40)
         }
         .scrollDismissesKeyboard(.immediately)
         .refreshable {
@@ -346,8 +354,6 @@ struct LibraryView: View {
             library.reload()
             progress.refresh()
         }
-        .onPreferenceChange(CardFrameKey.self) { cardFrames = $0 }
-        .onPreferenceChange(FolderFrameKey.self) { folderFrames = $0 }
     }
 
     private func card(_ item: VideoItem) -> some View {
@@ -546,11 +552,7 @@ struct LibraryView: View {
     // MARK: - 空状态
 
     private var emptyState: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "play.rectangle.on.rectangle")
-                .font(.system(size: 38, weight: .light))
-                .foregroundStyle(Palette.tertiaryText)
-
+        VStack(spacing: 10) {
             if library.allItems.isEmpty {
                 Text("还没有视频")
                     .font(.system(size: 16, weight: .semibold))
@@ -618,12 +620,9 @@ struct LibraryView: View {
                 .padding(.horizontal, 12)
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
-        .padding(.horizontal, 16)
-        .glass(cornerRadius: 18)
-        .padding(.horizontal, sidePadding)
-        .padding(.top, 40)
+        // 不套卡片框：空库时整页只留一行居中的文字
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 40)
     }
 
     // MARK: - 浮层
