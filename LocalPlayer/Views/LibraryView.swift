@@ -1016,8 +1016,21 @@ struct LibraryView: View {
 
     // MARK: - 调试直达
 
+    #if DEBUG
+    /// 截图用：给前几个视频写一点进度，用来核对角标
+    private func seedDebugProgressIfNeeded() {
+        guard DebugSeed.argument(after: "-seedProgress") == "1" else { return }
+        let items = library.allItems.filter { $0.folder.isEmpty }
+        guard items.count >= 3 else { return }
+        progress.update(id: items[0].id, time: 3.4, total: 8)
+        progress.update(id: items[1].id, time: 6.2, total: 8)
+        progress.setWatched(items[2].id, true)
+    }
+    #endif
+
     private func applyDebugRoute() {
         #if DEBUG
+        seedDebugProgressIfNeeded()
         guard let route = DebugSeed.argument(after: "-screen") else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
             switch route {

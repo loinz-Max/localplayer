@@ -100,10 +100,7 @@ struct SettingsView: View {
                 .buttonStyle(.plain)
             }
         }
-        .background {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color.white.opacity(0.045))
-        }
+        .glass(cornerRadius: 18)
     }
 
     /// 一级菜单右侧那句摘要：不进二级页也能看到关键状态
