@@ -83,8 +83,8 @@ struct LibraryView: View {
     @State private var toastToken = 0
 
     private let sidePadding: CGFloat = 16
-    /// 长按浮起时的放大比例：能看出「被拎起来」，又不至于压到相邻卡片
-    private static let liftScale: CGFloat = 1.045
+    /// 长按浮起时的放大比例：原位置留空 + 轻微放大 + 投影，读作「这张被拎起来了」
+    private static let liftScale: CGFloat = 1.06
     private let columnSpacing: CGFloat = 12
     private let rowSpacing: CGFloat = 18
 
@@ -494,6 +494,7 @@ struct LibraryView: View {
                     .onLongPressGesture(minimumDuration: 0.38) {
                         openFolderMenu(folder)
                     }
+                    .opacity(folderTarget?.path == folder ? 0 : 1)
                 }
 
                 ForEach(activeVideos) { item in
@@ -549,6 +550,8 @@ struct LibraryView: View {
                 openCardMenu(item)
             }
         }
+        // 浮层已经替代了它，原位留空，避免两张卡叠在一起露出错位边缘
+        .opacity(target?.item.id == item.id ? 0 : 1)
     }
 
     // MARK: - 列表视图
@@ -622,6 +625,7 @@ struct LibraryView: View {
         .onLongPressGesture(minimumDuration: 0.38) {
             openFolderMenu(folder)
         }
+        .opacity(folderTarget?.path == folder ? 0 : 1)
     }
 
     private func listRow(_ item: VideoItem) -> some View {
@@ -659,6 +663,8 @@ struct LibraryView: View {
                 openCardMenu(item)
             }
         }
+        // 浮层已经替代了它，原位留空，避免两张卡叠在一起露出错位边缘
+        .opacity(target?.item.id == item.id ? 0 : 1)
     }
 
     // MARK: - 多选
@@ -905,31 +911,33 @@ struct LibraryView: View {
     }
 
     /// 被长按的卡片浮在遮罩之上，保持清晰
-    /// 被长按的卡片浮在遮罩之上，保持清晰；顺带轻微放大，让「浮起来」这件事看得出来
+    /// 被长按的卡片浮在遮罩之上：原位置留空，浮层从原尺寸放大到 1.06 并带投影
     private func floatingCard(_ target: CardTarget) -> some View {
         VideoCard(
             item: target.item,
             fraction: progress.progressFraction(for: target.item.id),
             watched: progress.isWatched(target.item.id),
-            active: true
+            active: true,
+            lifted: true
         )
         .frame(width: target.rect.width, alignment: .top)
         .scaleEffect(Self.liftScale)
         .position(x: target.rect.midX, y: target.rect.midY)
         .allowsHitTesting(false)
-        .transition(.scale(scale: 0.97).combined(with: .opacity))
+        .transition(.scale(scale: 1 / Self.liftScale).combined(with: .opacity))
     }
 
     private func floatingFolder(_ target: FolderTarget) -> some View {
         FolderCard(
             name: library.displayName(forFolder: target.path),
-            count: count(in: target.path)
+            count: count(in: target.path),
+            lifted: true
         )
         .frame(width: target.rect.width, alignment: .top)
         .scaleEffect(Self.liftScale)
         .position(x: target.rect.midX, y: target.rect.midY)
         .allowsHitTesting(false)
-        .transition(.scale(scale: 0.97).combined(with: .opacity))
+        .transition(.scale(scale: 1 / Self.liftScale).combined(with: .opacity))
     }
 
     private func cardMenu(_ target: CardTarget, screen: CGSize) -> some View {

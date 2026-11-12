@@ -134,6 +134,8 @@ struct VideoCard: View {
     var selected: Bool = false
     /// 搜索结果里显示所在文件夹（平时为 nil）
     var folderName: String? = nil
+    /// 长按浮起的那一份：加一层投影，做出「离开网格」的层次
+    var lifted: Bool = false
 
     @State private var duration: Double?
 
@@ -168,6 +170,12 @@ struct VideoCard: View {
                             .strokeBorder(Palette.accent, lineWidth: 2)
                     }
                 }
+                .compositingGroup()
+                .shadow(
+                    color: .black.opacity(lifted ? 0.45 : 0),
+                    radius: lifted ? 16 : 0,
+                    y: lifted ? 9 : 0
+                )
 
             Text(item.displayName)
                 .font(.system(size: 15, weight: .semibold))
@@ -207,6 +215,8 @@ struct VideoCard: View {
 struct FolderCard: View {
     let name: String
     let count: Int
+    /// 长按浮起的那一份：加一层投影，做出「离开网格」的层次
+    var lifted: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -220,6 +230,12 @@ struct FolderCard: View {
                     .foregroundStyle(Palette.accent.opacity(0.9))
             }
             .aspectRatio(16.0 / 9.0, contentMode: .fit)
+            .compositingGroup()
+            .shadow(
+                color: .black.opacity(lifted ? 0.45 : 0),
+                radius: lifted ? 16 : 0,
+                y: lifted ? 9 : 0
+            )
 
             Text(name)
                 .font(.system(size: 15, weight: .semibold))
