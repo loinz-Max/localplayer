@@ -1251,6 +1251,13 @@ struct LibraryView: View {
                         openFolderMenu(first)
                     }
                 }
+            case "cardmenu":
+                // 视频卡片的长按菜单（缩略图浮起的另一种形态）
+                if let first = library.allItems.first {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                        openCardMenu(first)
+                    }
+                }
             case "list":
                 settings.libraryView = .list
             case "select":
