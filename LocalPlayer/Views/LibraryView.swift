@@ -558,7 +558,7 @@ struct LibraryView: View {
             } label: {
                 Text(selection.count == sortedVideos.count ? "取消全选" : "全选")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Palette.text)
+                    .foregroundStyle(Palette.onGlass)
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
                     .glass(Capsule())
@@ -571,7 +571,7 @@ struct LibraryView: View {
             } label: {
                 Text("移动")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Palette.text)
+                    .foregroundStyle(Palette.onGlass)
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
                     .glass(Capsule())
@@ -887,7 +887,7 @@ struct LibraryView: View {
                     } label: {
                         Label("文件", systemImage: "folder")
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Palette.text)
+                            .foregroundStyle(Palette.onGlass)
                             .frame(maxWidth: .infinity)
                             .frame(height: 40)
                             .glass(Capsule())
@@ -910,7 +910,7 @@ struct LibraryView: View {
         if let toastText {
             Text(toastText)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Palette.text)
+                .foregroundStyle(Palette.onGlass)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
                 .glass(Capsule())
@@ -928,10 +928,10 @@ struct LibraryView: View {
                 VStack(spacing: 12) {
                     ProgressView()
                         .progressViewStyle(.circular)
-                        .tint(.white)
+                        .tint(Palette.onGlass)
                     Text("正在从相册导入…")
                         .font(.system(size: 13))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Palette.onGlass)
                 }
                 .padding(.horizontal, 26)
                 .padding(.vertical, 22)

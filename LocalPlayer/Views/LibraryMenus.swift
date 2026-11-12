@@ -32,7 +32,7 @@ struct MenuRowButton: View {
 
                 Spacer(minLength: 0)
             }
-            .foregroundStyle(danger ? Palette.danger : Palette.text)
+            .foregroundStyle(danger ? Palette.danger : Palette.onGlass)
             .padding(.horizontal, horizontalPadding)
             .frame(height: height)
             .contentShape(Rectangle())
@@ -52,13 +52,13 @@ struct MenuBadgeRow: View {
             HStack(spacing: 11) {
                 Image(systemName: icon)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color(red: 0.11, green: 0.11, blue: 0.12))
+                    .foregroundStyle(.white)
                     .frame(width: 26, height: 26)
-                    .background(Circle().fill(Color.white))
+                    .background(Circle().fill(Palette.accent))
 
                 Text(title)
                     .font(.system(size: 15.5))
-                    .foregroundStyle(Palette.text)
+                    .foregroundStyle(Palette.onGlass)
                     .lineLimit(1)
 
                 Spacer(minLength: 0)
@@ -77,7 +77,7 @@ struct MenuSeparator: View {
 
     var body: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.12))
+            .fill(Palette.glassHairline)
             .frame(height: 0.5)
             .padding(.horizontal, horizontalPadding)
             .padding(.vertical, verticalPadding)
@@ -187,7 +187,7 @@ struct CardMenu: View {
         VStack(spacing: 0) {
             Text(item.name)
                 .font(.system(size: 12.5, weight: .medium))
-                .foregroundStyle(Palette.text.opacity(0.70))
+                .foregroundStyle(Palette.onGlass.opacity(0.62))
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -258,7 +258,7 @@ struct FolderMenu: View {
         VStack(spacing: 0) {
             Text(name)
                 .font(.system(size: 12.5, weight: .medium))
-                .foregroundStyle(Palette.text.opacity(0.70))
+                .foregroundStyle(Palette.onGlass.opacity(0.62))
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -337,7 +337,7 @@ struct MoveFolderSheet: View {
                         ForEach(choices) { choice in
                             row(choice)
                             Rectangle()
-                                .fill(Palette.hairline)
+                                .fill(Palette.glassHairline)
                                 .frame(height: 0.5)
                                 .padding(.leading, 16 + CGFloat(choice.depth) * 14)
                         }
@@ -366,12 +366,12 @@ struct MoveFolderSheet: View {
             HStack(spacing: 10) {
                 Image(systemName: choice.path.isEmpty ? "tray.full" : "folder")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(isCurrent ? Palette.tertiaryText : Palette.accent)
+                    .foregroundStyle(isCurrent ? Palette.onGlassTertiary : Palette.accent)
                     .frame(width: 20)
 
                 Text(choice.display)
                     .font(.system(size: 14))
-                    .foregroundStyle(isCurrent ? Palette.tertiaryText : Palette.text)
+                    .foregroundStyle(isCurrent ? Palette.onGlassTertiary : Palette.onGlass)
                     .lineLimit(1)
 
                 Spacer(minLength: 0)
@@ -379,7 +379,7 @@ struct MoveFolderSheet: View {
                 if isCurrent {
                     Text("当前")
                         .font(.system(size: 11.5))
-                        .foregroundStyle(Palette.tertiaryText)
+                        .foregroundStyle(Palette.onGlassTertiary)
                 }
             }
             .padding(.leading, CGFloat(choice.depth) * 14)

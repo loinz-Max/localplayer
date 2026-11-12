@@ -1,15 +1,23 @@
 import SwiftUI
+import UIKit
 
-/// 液态玻璃配方（对齐 iOS 26 起的 Liquid Glass 观感）：
-///   1. `.ultraThinMaterial` —— 真实背景模糊
-///   2. 染色层 —— 把材质压到目标明度（浅底用白、压画面用黑）
-///   3. 镜面高光 —— 左上角的径向高光，让平面看起来是"凸"的
-///   4. 底部厚度 —— 下沿的暗色渐变，制造玻璃的体感
-///   5. 边缘光 —— 1pt 渐变描边，上沿最亮、下沿几乎消失
-///   6. 外投影 —— 让整块浮在背景之上
+/// 白色液态玻璃配方。
 ///
-/// 不直接用原生 `glassEffect`：那需要 Xcode 26 / iOS 26 SDK 才编得过，
-/// 而 CI 跑在 macos-15 上；这六层在任何 iOS 17+ 上都能还原同样的观感。
+/// 关键点：`Material` 会跟随系统深浅色走，App 是深色界面，所以
+/// `.ultraThinMaterial` 渲染出来是一层**灰**——这就是「灰质」的根源，
+/// 后面叠多少白色染色都压不回来。
+///
+/// 这里改用 `UIVisualEffectView` + `systemUltraThinMaterialLight`：
+/// 强制浅色雾化材质，深色背景透上来会被提亮成白色磨砂，才是真正的白玻璃。
+///
+/// 层序：
+///   1. 浅色雾化材质 —— 背景被模糊并提亮成白雾
+///   2. 白色染色 —— 顶部更白、底部略收，形成厚薄
+///   3. 左上镜面高光 —— 让平面看起来是凸的
+///   4. 底部厚度 —— 极淡的暗边，制造玻璃体感（白玻璃只要一点点）
+///   5. 边缘光 —— 上沿接近纯白、下沿半透，1pt 渐变描边
+///   6. 内圈细高光 —— 玻璃断面的厚度
+///   7. 外投影 —— 浮在背景之上
 struct GlassStyle {
     var tintTop: Color
     var tintBottom: Color
@@ -22,59 +30,78 @@ struct GlassStyle {
     var shadowRadius: CGFloat
     var shadowY: CGFloat
     var shadowOpacity: Double
+    var blur: UIBlurEffect.Style = .systemUltraThinMaterialLight
 
     /// 资料库这类深色底上的圆键、胶囊
     static let control = GlassStyle(
-        tintTop: Color.white.opacity(0.17),
-        tintBottom: Color.white.opacity(0.07),
-        sheen: 0.30,
-        rimTop: Color.white.opacity(0.70),
-        rimBottom: Color.white.opacity(0.12),
-        depth: 0.10,
+        tintTop: Color.white.opacity(0.30),
+        tintBottom: Color.white.opacity(0.12),
+        sheen: 0.62,
+        rimTop: Color.white.opacity(0.95),
+        rimBottom: Color.white.opacity(0.34),
+        depth: 0.00,
+        shadowRadius: 12,
+        shadowY: 4,
+        shadowOpacity: 0.22
+    )
+
+    /// 菜单、抽屉、弹窗：要压住内容，材质取厚一点
+    static let panel = GlassStyle(
+        tintTop: Color.white.opacity(0.36),
+        tintBottom: Color.white.opacity(0.18),
+        sheen: 0.52,
+        rimTop: Color.white.opacity(0.98),
+        rimBottom: Color.white.opacity(0.30),
+        depth: 0.02,
+        shadowRadius: 26,
+        shadowY: 10,
+        shadowOpacity: 0.30,
+        blur: .systemThinMaterialLight
+    )
+
+    /// 播放页：压在视频画面上，同样的白玻璃，但要更实一点才压得住亮画面
+    static let stage = GlassStyle(
+        tintTop: Color.white.opacity(0.34),
+        tintBottom: Color.white.opacity(0.16),
+        sheen: 0.58,
+        rimTop: Color.white.opacity(0.96),
+        rimBottom: Color.white.opacity(0.32),
+        depth: 0.02,
         shadowRadius: 14,
         shadowY: 5,
-        shadowOpacity: 0.28
-    )
-
-    /// 菜单、抽屉、弹窗
-    static let panel = GlassStyle(
-        tintTop: Color.black.opacity(0.30),
-        tintBottom: Color.black.opacity(0.44),
-        sheen: 0.24,
-        rimTop: Color.white.opacity(0.62),
-        rimBottom: Color.white.opacity(0.08),
-        depth: 0.22,
-        shadowRadius: 30,
-        shadowY: 12,
-        shadowOpacity: 0.48
-    )
-
-    /// 播放页：压在视频画面上。浅色染色在亮画面上会糊掉，这里用暗色，
-    /// 但边缘光要更亮——那是液态玻璃最好认的特征。
-    static let stage = GlassStyle(
-        tintTop: Color.black.opacity(0.24),
-        tintBottom: Color.black.opacity(0.40),
-        sheen: 0.26,
-        rimTop: Color.white.opacity(0.72),
-        rimBottom: Color.white.opacity(0.10),
-        depth: 0.20,
-        shadowRadius: 16,
-        shadowY: 6,
-        shadowOpacity: 0.38
+        shadowOpacity: 0.26,
+        blur: .systemThinMaterialLight
     )
 
     /// 更淡一档，用于进度条这类大面积浅底
     static let subtle = GlassStyle(
-        tintTop: Color.white.opacity(0.13),
-        tintBottom: Color.white.opacity(0.05),
-        sheen: 0.22,
-        rimTop: Color.white.opacity(0.58),
-        rimBottom: Color.white.opacity(0.08),
-        depth: 0.08,
+        tintTop: Color.white.opacity(0.20),
+        tintBottom: Color.white.opacity(0.08),
+        sheen: 0.44,
+        rimTop: Color.white.opacity(0.86),
+        rimBottom: Color.white.opacity(0.24),
+        depth: 0.00,
         shadowRadius: 10,
         shadowY: 3,
-        shadowOpacity: 0.24
+        shadowOpacity: 0.20
     )
+}
+
+// MARK: - 浅色雾化底
+
+private struct LightBlur: UIViewRepresentable {
+    let style: UIBlurEffect.Style
+
+    func makeUIView(context: Context) -> UIVisualEffectView {
+        let view = UIVisualEffectView(effect: UIBlurEffect(style: style))
+        view.isUserInteractionEnabled = false
+        view.backgroundColor = .clear
+        return view
+    }
+
+    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
+        uiView.effect = UIBlurEffect(style: style)
+    }
 }
 
 private struct GlassFill<S: InsettableShape>: View {
@@ -82,60 +109,66 @@ private struct GlassFill<S: InsettableShape>: View {
     let style: GlassStyle
 
     var body: some View {
-        shape
-            .fill(Material.ultraThinMaterial)
-            .overlay {
-                shape.fill(
-                    LinearGradient(
-                        colors: [style.tintTop, style.tintBottom],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
+        ZStack {
+            // 1. 浅色雾化：深背景透上来变白雾，这是"白玻璃"和"灰块"的分界
+            LightBlur(style: style.blur)
+
+            // 2. 白色染色
+            shape.fill(
+                LinearGradient(
+                    colors: [style.tintTop, style.tintBottom],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
-            }
-            .overlay {
-                // 镜面高光：从左上角铺开，边界要软
-                shape.fill(
-                    RadialGradient(
-                        colors: [Color.white.opacity(style.sheen), Color.white.opacity(0)],
-                        center: .topLeading,
-                        startRadius: 0,
-                        endRadius: 110
-                    )
-                )
-            }
-            .overlay {
-                // 底部厚度：越往下越沉
-                shape.fill(
-                    LinearGradient(
-                        colors: [Color.clear, Color.black.opacity(style.depth)],
-                        startPoint: .center,
-                        endPoint: .bottom
-                    )
-                )
-            }
-            .overlay {
-                shape.strokeBorder(
-                    LinearGradient(
-                        colors: [style.rimTop, style.rimBottom],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-            }
-            .overlay {
-                // 内圈细高光：模拟玻璃的厚度
-                shape
-                    .inset(by: 1.2)
-                    .strokeBorder(Color.white.opacity(style.sheen * 0.32), lineWidth: 0.6)
-            }
-            .compositingGroup()
-            .shadow(
-                color: .black.opacity(style.shadowOpacity),
-                radius: style.shadowRadius,
-                y: style.shadowY
             )
+
+            // 3. 左上镜面高光
+            shape.fill(
+                RadialGradient(
+                    colors: [
+                        Color.white.opacity(style.sheen),
+                        Color.white.opacity(style.sheen * 0.34),
+                        Color.white.opacity(0)
+                    ],
+                    center: .topLeading,
+                    startRadius: 0,
+                    endRadius: 120
+                )
+            )
+
+            // 4. 底部厚度
+            shape.fill(
+                LinearGradient(
+                    colors: [Color.clear, Color.black.opacity(style.depth)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+            )
+        }
+        .clipShape(shape)
+        .overlay {
+            // 5. 边缘光：上沿接近纯白，是液态玻璃最好认的特征
+            shape.strokeBorder(
+                LinearGradient(
+                    colors: [style.rimTop, style.rimBottom],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                lineWidth: 1
+            )
+        }
+        .overlay {
+            // 6. 内圈细高光：玻璃断面的厚度
+            shape
+                .inset(by: 1.1)
+                .strokeBorder(Color.white.opacity(0.55 + style.sheen * 0.3), lineWidth: 0.5)
+        }
+        .compositingGroup()
+        .shadow(
+            color: .black.opacity(style.shadowOpacity),
+            radius: style.shadowRadius,
+            y: style.shadowY
+        )
     }
 }
 
@@ -164,7 +197,7 @@ struct GlassIconButton: View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: iconSize, weight: weight))
-                .foregroundStyle(Palette.text)
+                .foregroundStyle(Palette.onGlass)
                 .frame(width: size, height: size)
                 .contentShape(Circle())
         }

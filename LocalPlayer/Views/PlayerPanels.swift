@@ -31,7 +31,7 @@ struct PanelShell<Content: View>: View {
 private struct PanelDivider: View {
     var body: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.08))
+            .fill(Palette.glassHairline)
             .frame(height: 0.5)
     }
 }
@@ -56,23 +56,23 @@ struct QueuePanel: View {
                 Text("正在播放")
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.6)
-                    .foregroundStyle(Palette.tertiaryText)
+                    .foregroundStyle(Palette.onGlassTertiary)
 
                 Text(current.displayName)
                     .font(.system(size: isLandscape ? 18 : 22, weight: .semibold))
-                    .foregroundStyle(Palette.text)
+                    .foregroundStyle(Palette.onGlass)
                     .lineLimit(2)
                     .padding(.top, 6)
 
                 Text(subLine)
                     .font(.system(size: 12))
-                    .foregroundStyle(Palette.secondaryText)
+                    .foregroundStyle(Palette.onGlassSecondary)
                     .monospacedDigit()
                     .padding(.top, 4)
 
                 Text("第 \(index) 个 · 共 \(queue.count) 个")
                     .font(.system(size: 12))
-                    .foregroundStyle(Palette.tertiaryText)
+                    .foregroundStyle(Palette.onGlassTertiary)
                     .monospacedDigit()
                     .padding(.top, 2)
 
@@ -122,12 +122,12 @@ struct QueuePanel: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.displayName)
                         .font(.system(size: 13, weight: isCurrent ? .semibold : .regular))
-                        .foregroundStyle(isCurrent ? Palette.text : Palette.text.opacity(0.86))
+                        .foregroundStyle(isCurrent ? Palette.onGlass : Palette.onGlass.opacity(0.86))
                         .lineLimit(1)
 
                     Text(durationText(item))
                         .font(.system(size: 11))
-                        .foregroundStyle(Palette.tertiaryText)
+                        .foregroundStyle(Palette.onGlassTertiary)
                         .monospacedDigit()
                 }
 
@@ -177,7 +177,7 @@ struct SpeedPanel: View {
             Text("播放速度")
                 .font(.system(size: 10.5, weight: .semibold))
                 .tracking(0.3)
-                .foregroundStyle(Palette.tertiaryText)
+                .foregroundStyle(Palette.onGlassTertiary)
                 .padding(.horizontal, 13)
                 .padding(.top, 8)
                 .padding(.bottom, 4)
@@ -209,7 +209,7 @@ struct SpeedPanel: View {
 
                 Spacer(minLength: 0)
             }
-            .foregroundStyle(active ? Palette.text : Palette.text.opacity(0.86))
+            .foregroundStyle(active ? Palette.onGlass : Palette.onGlass.opacity(0.86))
             .padding(.horizontal, 13)
             .frame(height: 34)
             .contentShape(Rectangle())

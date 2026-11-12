@@ -506,7 +506,7 @@ private struct PlayerCore: View {
                 } label: {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Palette.onGlass)
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())
                 }
@@ -612,7 +612,7 @@ private struct PlayerCore: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: iconSize, weight: .medium))
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.onGlass)
                 .frame(width: size, height: size)
                 .contentShape(Circle())
         }
@@ -643,7 +643,7 @@ private struct PlayerCore: View {
         } label: {
             Image(systemName: "lock.open")
                 .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.onGlass)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
@@ -658,7 +658,7 @@ private struct PlayerCore: View {
             Text(rateText)
                 .font(.system(size: 12.5, weight: .semibold))
                 .monospacedDigit()
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.onGlass)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
@@ -671,7 +671,7 @@ private struct PlayerCore: View {
             Text(Fmt.time(displayTime))
                 .font(.system(size: 12, weight: .medium))
                 .monospacedDigit()
-                .foregroundStyle(.white.opacity(0.92))
+                .foregroundStyle(Palette.onGlass)
                 .fixedSize()
 
             scrubBar
@@ -679,7 +679,7 @@ private struct PlayerCore: View {
             Text("-\(Fmt.time(max(0, model.duration - displayTime)))")
                 .font(.system(size: 12, weight: .medium))
                 .monospacedDigit()
-                .foregroundStyle(.white.opacity(0.62))
+                .foregroundStyle(Palette.onGlassSecondary)
                 .fixedSize()
         }
         .padding(.horizontal, 15)
@@ -713,17 +713,17 @@ private struct PlayerCore: View {
             let width = max(geo.size.width, 1)
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.white.opacity(0.26))
+                    .fill(Palette.glassTrack)
                     .frame(height: 4)
 
                 Capsule()
-                    .fill(Color.white)
+                    .fill(Palette.onGlass.opacity(0.86))
                     .frame(width: width * CGFloat(playFraction), height: 4)
 
                 Circle()
-                    .fill(Color.white)
+                    .fill(Palette.onGlass)
                     .frame(width: 11, height: 11)
-                    .shadow(color: .black.opacity(0.45), radius: 2, y: 1)
+                    .shadow(color: .white.opacity(0.7), radius: 2, y: 1)
                     .offset(x: max(0, min(width - 11, width * CGFloat(playFraction) - 5.5)))
             }
             .frame(height: 20)
@@ -793,7 +793,7 @@ private struct PlayerCore: View {
             Spacer(minLength: 0)
             Text(text)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Palette.text)
+                .foregroundStyle(Palette.onGlass)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
                 .glass(Capsule())
@@ -834,7 +834,7 @@ private struct PlayerCore: View {
             Text(boostLabel)
                 .font(.system(size: 12, weight: .semibold))
                 .monospacedDigit()
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.onGlass)
                 .padding(.horizontal, 11)
                 .padding(.vertical, 6)
                 .glass(Capsule(), style: .stage)
@@ -851,19 +851,19 @@ private struct PlayerCore: View {
             VStack(spacing: 9) {
                 Image(systemName: hud.icon)
                     .font(.system(size: 24, weight: .medium))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.onGlass)
 
                 Text(hud.text)
                     .font(.system(size: 13, weight: .semibold))
                     .monospacedDigit()
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.onGlass)
 
                 if let value = hud.progress {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
-                            Capsule().fill(Color.white.opacity(0.25))
+                            Capsule().fill(Palette.glassTrack)
                             Capsule()
-                                .fill(Color.white)
+                                .fill(Palette.onGlass.opacity(0.86))
                                 .frame(width: max(0, geo.size.width * CGFloat(min(max(value, 0), 1))))
                         }
                     }
@@ -872,10 +872,7 @@ private struct PlayerCore: View {
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 16)
-            .background(
-                Color.black.opacity(0.58),
-                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-            )
+            .glass(cornerRadius: 14, style: .panel)
             .allowsHitTesting(false)
             .transition(.opacity)
         }
@@ -885,21 +882,21 @@ private struct PlayerCore: View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 28, weight: .light))
-                .foregroundStyle(.white.opacity(0.85))
+                .foregroundStyle(Palette.onGlass.opacity(0.85))
 
             Text("无法播放")
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Palette.onGlass)
 
             Text(message)
                 .font(.system(size: 12))
-                .foregroundStyle(.white.opacity(0.65))
+                .foregroundStyle(Palette.onGlassSecondary)
                 .multilineTextAlignment(.center)
 
             if !item.systemPlayable {
                 Text("\(item.ext.uppercased()) 容器系统播放器不支持，需要转成 mp4 / mov。")
                     .font(.system(size: 12))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .foregroundStyle(Palette.onGlassTertiary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 8)
             }
@@ -907,7 +904,7 @@ private struct PlayerCore: View {
             Button(action: onClose) {
                 Text("关闭")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Palette.onGlass)
                     .padding(.horizontal, 24)
                     .frame(height: 36)
                     .glass(Capsule())
