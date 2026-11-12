@@ -35,8 +35,8 @@ struct GlassStyle {
 
     /// 资料库这类深色底上的圆键、胶囊
     static let control = GlassStyle(
-        tintTop: Color.white.opacity(0.72),
-        tintBottom: Color.white.opacity(0.46),
+        tintTop: Color.white.opacity(0.42),
+        tintBottom: Color.white.opacity(0.18),
         sheen: 0.90,
         rimTop: Color.white.opacity(1.0),
         rimBottom: Color.white.opacity(0.55),
@@ -44,7 +44,7 @@ struct GlassStyle {
         shadowRadius: 12,
         shadowY: 4,
         shadowOpacity: 0.22,
-        material: .ultraThinMaterial
+        material: .thinMaterial
     )
 
     /// 菜单、抽屉、弹窗：要压住内容，材质取厚一点
@@ -63,8 +63,8 @@ struct GlassStyle {
 
     /// 播放页：压在视频画面上，同样的白玻璃，但要更实一点才压得住亮画面
     static let stage = GlassStyle(
-        tintTop: Color.white.opacity(0.70),
-        tintBottom: Color.white.opacity(0.46),
+        tintTop: Color.white.opacity(0.44),
+        tintBottom: Color.white.opacity(0.20),
         sheen: 0.82,
         rimTop: Color.white.opacity(1.0),
         rimBottom: Color.white.opacity(0.50),
@@ -72,7 +72,7 @@ struct GlassStyle {
         shadowRadius: 14,
         shadowY: 5,
         shadowOpacity: 0.26,
-        material: .ultraThinMaterial
+        material: .thinMaterial
     )
 
     /// 更淡一档，用于进度条这类大面积浅底
