@@ -34,24 +34,25 @@ struct GlassStyle {
 
     /// 资料库这类深色底上的圆键、胶囊
     static let control = GlassStyle(
-        tintTop: Color.white.opacity(0.30),
-        tintBottom: Color.white.opacity(0.12),
-        sheen: 0.62,
-        rimTop: Color.white.opacity(0.95),
-        rimBottom: Color.white.opacity(0.34),
+        tintTop: Color.white.opacity(0.48),
+        tintBottom: Color.white.opacity(0.26),
+        sheen: 0.78,
+        rimTop: Color.white.opacity(1.0),
+        rimBottom: Color.white.opacity(0.42),
         depth: 0.00,
         shadowRadius: 12,
         shadowY: 4,
-        shadowOpacity: 0.22
+        shadowOpacity: 0.22,
+        blur: .systemThinMaterialLight
     )
 
     /// 菜单、抽屉、弹窗：要压住内容，材质取厚一点
     static let panel = GlassStyle(
-        tintTop: Color.white.opacity(0.36),
-        tintBottom: Color.white.opacity(0.18),
-        sheen: 0.52,
-        rimTop: Color.white.opacity(0.98),
-        rimBottom: Color.white.opacity(0.30),
+        tintTop: Color.white.opacity(0.50),
+        tintBottom: Color.white.opacity(0.28),
+        sheen: 0.66,
+        rimTop: Color.white.opacity(1.0),
+        rimBottom: Color.white.opacity(0.38),
         depth: 0.02,
         shadowRadius: 26,
         shadowY: 10,
@@ -61,11 +62,11 @@ struct GlassStyle {
 
     /// 播放页：压在视频画面上，同样的白玻璃，但要更实一点才压得住亮画面
     static let stage = GlassStyle(
-        tintTop: Color.white.opacity(0.34),
-        tintBottom: Color.white.opacity(0.16),
-        sheen: 0.58,
-        rimTop: Color.white.opacity(0.96),
-        rimBottom: Color.white.opacity(0.32),
+        tintTop: Color.white.opacity(0.46),
+        tintBottom: Color.white.opacity(0.26),
+        sheen: 0.70,
+        rimTop: Color.white.opacity(1.0),
+        rimBottom: Color.white.opacity(0.38),
         depth: 0.02,
         shadowRadius: 14,
         shadowY: 5,
@@ -75,11 +76,11 @@ struct GlassStyle {
 
     /// 更淡一档，用于进度条这类大面积浅底
     static let subtle = GlassStyle(
-        tintTop: Color.white.opacity(0.20),
-        tintBottom: Color.white.opacity(0.08),
-        sheen: 0.44,
-        rimTop: Color.white.opacity(0.86),
-        rimBottom: Color.white.opacity(0.24),
+        tintTop: Color.white.opacity(0.34),
+        tintBottom: Color.white.opacity(0.16),
+        sheen: 0.56,
+        rimTop: Color.white.opacity(0.94),
+        rimBottom: Color.white.opacity(0.30),
         depth: 0.00,
         shadowRadius: 10,
         shadowY: 3,
