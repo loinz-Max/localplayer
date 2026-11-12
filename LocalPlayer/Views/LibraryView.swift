@@ -85,7 +85,7 @@ struct LibraryView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .top) {
-                Palette.background.ignoresSafeArea()
+                ScreenBackdrop()
 
                 VStack(spacing: 0) {
                     topBar

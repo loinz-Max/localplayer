@@ -308,7 +308,7 @@ struct MoveFolderSheet: View {
 
     var body: some View {
         ZStack {
-            Palette.background.ignoresSafeArea()
+            ScreenBackdrop()
 
             VStack(spacing: 0) {
                 HStack {

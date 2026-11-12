@@ -14,7 +14,7 @@ struct SettingsView: View {
 
     var body: some View {
         ZStack {
-            Palette.background.ignoresSafeArea()
+            ScreenBackdrop()
 
             VStack(spacing: 0) {
                 header
