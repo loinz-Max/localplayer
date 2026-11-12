@@ -12,6 +12,7 @@
 - 界面原型：`preview/` 下的两个 HTML，双击用浏览器打开（支持 `?only=` 单屏查看）。
   **原型已经落后于实现，以代码为准** —— 具体差在哪见 `docs/DESIGN.md` 第 8 节
 - 验收存档：[`docs/ACCEPTANCE-2026-11-12.md`](docs/ACCEPTANCE-2026-11-12.md)
+- 品牌：桌面名「幕间」（英文 Interlude），图标是深底液态玻璃棱镜。换图标只替换 `icon-1024.png`（1024×1024、无 alpha），改完记得重启手机，iOS 会缓存旧图标
 - 规模：25 个 Swift 文件，约 5400 行；部署目标 iOS 17.0
 
 ---
@@ -126,7 +127,7 @@ bash scripts/dev.sh
 localplayer/
 ├─ README.md                        本文件：功能范围、怎么跑、已知边界
 ├─ project.yml                      XcodeGen 工程描述（部署目标 iOS 17.0）
-├─ Info.plist                       相册读取用途说明、文件共享、后台音频
+├─ Info.plist                       桌面名「幕间」、文件共享、后台音频、方向声明
 ├─ CHANGELOG.md                     更新记录
 ├─ .github/workflows/ios-ipa.yml    云端编译 + 模拟器截图 + 失败取错误
 ├─ docs/
@@ -139,13 +140,14 @@ localplayer/
 ├─ scripts/dev.sh                   本地一键：生成工程 → 编译 → 装机 → 带数据启动
 ├─ scripts/push-api.js              git 被代理挡住时，改用 Git Data API 推送
 └─ LocalPlayer/
+   ├─ Assets.xcassets/AppIcon.appiconset/icon-1024.png   桌面图标（液态玻璃棱镜，1024 单尺寸）
    ├─ App/LocalPlayerApp.swift      入口，注入三个 store，配 AVAudioSession
    ├─ Models/VideoItem.swift        VideoItem / SortKey / PlayMode
    ├─ Player/
    │  ├─ PlayerModel.swift          AVPlayer 封装：时间轴 / 倍速 / 缓冲 / 失败态
    │  └─ VideoSurface.swift         AVPlayerLayer 的 SwiftUI 包装
    ├─ Services/
-   │  ├─ AppSettings.swift          长按倍速 / 模式 / 排序 / 续播 / 方向锁（键名集中在此）
+   │  ├─ AppSettings.swift          长按倍速 / 模式 / 排序 / 续播 / 播放页方向（键名集中在此）
    │  ├─ LibraryStore.swift         扫描、导入、删除、重命名、建文件夹、目录监听
    │  ├─ ImportService.swift        后台导入：copy / move + 进度与结果汇总
    │  ├─ ProgressStore.swift        进度 + 最近播放顺序 + 已看标记
