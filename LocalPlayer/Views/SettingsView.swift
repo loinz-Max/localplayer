@@ -95,11 +95,6 @@ struct SettingsView: View {
 
                         Spacer(minLength: 8)
 
-                        Text(summary(for: page))
-                            .font(.system(size: 12.5))
-                            .foregroundStyle(Palette.secondaryText)
-                            .lineLimit(1)
-
                         Image(systemName: "chevron.right")
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(Palette.tertiaryText)
@@ -112,21 +107,6 @@ struct SettingsView: View {
             }
         }
         .glass(cornerRadius: 18)
-    }
-
-    /// 一级菜单右侧那句摘要：不进二级页也能看到关键状态
-    private func summary(for page: SettingsPage) -> String {
-        switch page {
-        case .playback:
-            let rate = String(format: "%g", settings.longPressRate)
-            return "长按 \(rate)× · \(settings.resumePlayback ? "续播开" : "续播关")"
-        case .interface:
-            return "\(settings.orientationLock.title) · 常亮\(settings.keepAwake ? "开" : "关")"
-        case .storage:
-            return Fmt.size(library.totalSize)
-        case .about:
-            return appVersion
-        }
     }
 
     // MARK: - 二级页
