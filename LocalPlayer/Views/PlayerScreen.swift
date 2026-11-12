@@ -982,6 +982,9 @@ private struct PlayerCore: View {
                 case "speed": speedOpen = true
                 case "lock": touchLocked = true
                 case "level": level = LevelHUD(value: 0.62)
+                case "boost":
+                    boosting = true
+                    model.setRate(Float(AppSettings.storedLongPressRate()))
                 default: queueOpen = true
                 }
             }
