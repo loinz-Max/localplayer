@@ -159,6 +159,7 @@ localplayer/
 10. **想要方向锁生效，就不要用 modal 呈现页面。** `fullScreenCover` 有独立的方向策略，会绕开 `AppDelegate` 的 mask。
 11. **不支持格式仍显示在列表里**，带警告图标，点开才提示转码。
 12. **零第三方依赖，不联网。** 加任何依赖前先想清楚要不要为它维护 CI。
+13. **方向：只有播放页能转。** 资料库、设置页由 `AppDelegate` 的 mask 强制竖屏；进播放页时 `OrientationController.setPlayerActive(true)` 才放开设置里的方向，退出自动转回竖屏。别把这段逻辑改成全局——试过一版全局锁，结果在资料库里转手机界面跟着转，很别扭。
 
 ---
 

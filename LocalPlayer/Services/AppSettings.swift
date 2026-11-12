@@ -39,8 +39,8 @@ final class AppSettings: ObservableObject {
         var title: String {
             switch self {
             case .system: return "跟随系统"
-            case .portrait: return "竖屏锁定"
-            case .landscape: return "横屏锁定"
+            case .portrait: return "竖屏"
+            case .landscape: return "横屏"
             }
         }
     }

@@ -52,10 +52,13 @@ struct PlayerScreen: View {
         .preferredColorScheme(.dark)
         .onAppear {
             if brightnessBefore == nil { brightnessBefore = ScreenBrightness.current }
+            // 只有播放页允许跟随设置旋转；资料库与设置页始终竖屏
+            OrientationController.shared.setPlayerActive(true)
         }
         .onDisappear {
             if let value = brightnessBefore { ScreenBrightness.set(value) }
             brightnessBefore = nil
+            OrientationController.shared.setPlayerActive(false)
         }
     }
 

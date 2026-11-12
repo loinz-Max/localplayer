@@ -64,7 +64,7 @@
 
 **设置页**（四级菜单，每项右侧带当前状态摘要）
 - 播放：断点续播、长按倍速、默认播放模式
-- 播放界面：资料库排版（网格 / 列表）、默认画面、控件自动隐藏、旋转锁定（跟随系统 / 竖屏 / 横屏）、屏幕常亮
+- 播放界面：资料库排版（网格 / 列表）、默认画面、控件自动隐藏、播放页方向（跟随系统 / 竖屏 / 横屏；资料库与设置页固定竖屏）、屏幕常亮
 - 存储：视频占用、视频数量、清理缩略图缓存
 - 关于：版本号与隐私说明
 
@@ -157,7 +157,7 @@ localplayer/
    │  ├─ Formatters.swift           体积 / 时间格式化、重名去重
    │  ├─ ScreenBrightness.swift     屏幕亮度（进播放页记录、退出恢复）
    │  ├─ SystemVolume.swift         系统音量（隐藏 MPVolumeView）
-   │  ├─ OrientationController.swift 旋转锁定（AppDelegate mask + 几何更新）
+   │  ├─ OrientationController.swift 方向策略：非播放页竖屏，播放页按设置
    │  ├─ ScrubPreviewer.swift       拖动进度时的抓帧预览（0.5 秒一档 + 节流）
    │  └─ DebugSeed.swift            仅 Debug：示例视频、截图直达参数
    └─ Views/

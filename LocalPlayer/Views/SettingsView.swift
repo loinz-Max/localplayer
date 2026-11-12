@@ -290,9 +290,15 @@ struct SettingsView: View {
             divider
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("旋转锁定")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Palette.text)
+                HStack(alignment: .firstTextBaseline) {
+                    Text("播放页方向")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Palette.text)
+                    Spacer(minLength: 8)
+                    Text("资料库固定竖屏")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Palette.tertiaryText)
+                }
 
                 SettingsSegment(
                     titles: AppSettings.Orientation.allCases.map { $0.title },
