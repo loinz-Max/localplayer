@@ -23,21 +23,4 @@ enum Palette {
 
     /// 菜单里那一层极淡的选中底色
     static let rowHighlight = Color.white.opacity(0.08)
-
-    // MARK: - 白玻璃上的内容色
-    //
-    // 玻璃本身是白色雾面，上面必须用深色字/图标，否则白字贴白底等于没有。
-    // 只有"不在玻璃上"的东西（页面标题、卡片标题）继续用上面的 text。
-
-    /// #141416
-    static let onGlass = Color(red: 20 / 255, green: 20 / 255, blue: 22 / 255)
-    /// rgba(20,20,22,.56)
-    static let onGlassSecondary = onGlass.opacity(0.56)
-    /// rgba(20,20,22,.40)
-    static let onGlassTertiary = onGlass.opacity(0.40)
-
-    /// 白玻璃内部的分隔线：rgba(0,0,0,.10)
-    static let glassHairline = Color.black.opacity(0.10)
-    /// 白玻璃内部控件（进度条轨道、缩略图占位）
-    static let glassTrack = Color.black.opacity(0.14)
 }

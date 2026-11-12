@@ -14,7 +14,7 @@ struct SettingsView: View {
 
     var body: some View {
         ZStack {
-            ScreenBackdrop()
+            Palette.background.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 header
@@ -61,10 +61,10 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("长按倍速")
                         .font(.system(size: 14))
-                        .foregroundStyle(Palette.onGlass)
+                        .foregroundStyle(Palette.text)
                     Text("按住画面时按这个速度播放，松手复原")
                         .font(.system(size: 11.5))
-                        .foregroundStyle(Palette.onGlassTertiary)
+                        .foregroundStyle(Palette.tertiaryText)
                 }
                 Spacer()
                 Picker("", selection: rateBinding) {
@@ -74,7 +74,7 @@ struct SettingsView: View {
                 }
                 .labelsHidden()
                 .pickerStyle(.menu)
-                .tint(Palette.onGlass)
+                .tint(Palette.text)
             }
 
             divider
@@ -82,7 +82,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("默认播放模式")
                     .font(.system(size: 14))
-                    .foregroundStyle(Palette.onGlass)
+                    .foregroundStyle(Palette.text)
 
                 SettingsSegment(
                     titles: PlayMode.allCases.map(\.title),
@@ -98,7 +98,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("默认画面")
                     .font(.system(size: 14))
-                    .foregroundStyle(Palette.onGlass)
+                    .foregroundStyle(Palette.text)
 
                 SettingsSegment(
                     titles: gravityTitles,
@@ -115,10 +115,10 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("断点续播")
                         .font(.system(size: 14))
-                        .foregroundStyle(Palette.onGlass)
+                        .foregroundStyle(Palette.text)
                     Text("再次打开时从上次的位置开始")
                         .font(.system(size: 11.5))
-                        .foregroundStyle(Palette.onGlassTertiary)
+                        .foregroundStyle(Palette.tertiaryText)
                 }
                 Spacer()
                 Toggle("", isOn: boolBinding(\.resumePlayback))
@@ -137,10 +137,10 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("屏幕常亮")
                         .font(.system(size: 14))
-                        .foregroundStyle(Palette.onGlass)
+                        .foregroundStyle(Palette.text)
                     Text("播放时不自动熄屏")
                         .font(.system(size: 11.5))
-                        .foregroundStyle(Palette.onGlassTertiary)
+                        .foregroundStyle(Palette.tertiaryText)
                 }
                 Spacer()
                 Toggle("", isOn: boolBinding(\.keepAwake))
@@ -153,7 +153,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("控件自动隐藏")
                     .font(.system(size: 14))
-                    .foregroundStyle(Palette.onGlass)
+                    .foregroundStyle(Palette.text)
 
                 SettingsSegment(
                     titles: autoHideOptions.map { "\(Int($0)) 秒" },
@@ -170,7 +170,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("旋转锁定")
                     .font(.system(size: 14))
-                    .foregroundStyle(Palette.onGlass)
+                    .foregroundStyle(Palette.text)
 
                 SettingsSegment(
                     titles: AppSettings.Orientation.allCases.map { $0.title },
@@ -190,11 +190,11 @@ struct SettingsView: View {
             row {
                 Text("视频占用")
                     .font(.system(size: 14))
-                    .foregroundStyle(Palette.onGlass)
+                    .foregroundStyle(Palette.text)
                 Spacer()
                 Text(Fmt.size(library.totalSize))
                     .font(.system(size: 14))
-                    .foregroundStyle(Palette.onGlassSecondary)
+                    .foregroundStyle(Palette.secondaryText)
                     .monospacedDigit()
             }
 
@@ -203,11 +203,11 @@ struct SettingsView: View {
             row {
                 Text("视频数量")
                     .font(.system(size: 14))
-                    .foregroundStyle(Palette.onGlass)
+                    .foregroundStyle(Palette.text)
                 Spacer()
                 Text("\(library.allItems.count)")
                     .font(.system(size: 14))
-                    .foregroundStyle(Palette.onGlassSecondary)
+                    .foregroundStyle(Palette.secondaryText)
                     .monospacedDigit()
             }
 
@@ -221,12 +221,12 @@ struct SettingsView: View {
                 HStack {
                     Text("清理缩略图缓存")
                         .font(.system(size: 14))
-                        .foregroundStyle(Palette.onGlass)
+                        .foregroundStyle(Palette.text)
                     Spacer()
                     if cacheCleared {
                         Text("已清理")
                             .font(.system(size: 13))
-                            .foregroundStyle(Palette.onGlassTertiary)
+                            .foregroundStyle(Palette.tertiaryText)
                     }
                 }
                 .contentShape(Rectangle())
@@ -243,11 +243,11 @@ struct SettingsView: View {
             row {
                 Text("版本")
                     .font(.system(size: 14))
-                    .foregroundStyle(Palette.onGlass)
+                    .foregroundStyle(Palette.text)
                 Spacer()
                 Text(appVersion)
                     .font(.system(size: 14))
-                    .foregroundStyle(Palette.onGlassSecondary)
+                    .foregroundStyle(Palette.secondaryText)
             }
 
             divider
@@ -255,10 +255,10 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("本地播放器")
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Palette.onGlass)
+                    .foregroundStyle(Palette.text)
                 Text("视频只存在本机 Documents 目录，不联网、不登录、不上传。用「文件」App 可以直接看到这些文件。")
                     .font(.system(size: 12))
-                    .foregroundStyle(Palette.onGlassSecondary)
+                    .foregroundStyle(Palette.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -334,13 +334,13 @@ private struct SettingsSegment: View {
                 } label: {
                     Text(titles[index])
                         .font(.system(size: 12.5, weight: .medium))
-                        .foregroundStyle(selected == index ? Palette.onGlass : Palette.onGlassSecondary)
+                        .foregroundStyle(selected == index ? Palette.text : Palette.secondaryText)
                         .frame(maxWidth: .infinity)
                         .frame(height: 32)
                         .background {
                             if selected == index {
                                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(Color.black.opacity(0.10))
+                                    .fill(Color.white.opacity(0.16))
                             }
                         }
                         .contentShape(Rectangle())
