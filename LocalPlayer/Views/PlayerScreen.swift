@@ -715,8 +715,6 @@ private struct PlayerCore: View {
     /// 长按倍速跟着设置走（设置里可改 1.5/2/2.5/3）
     private var boostRate: Double { AppSettings.storedLongPressRate() }
 
-    private var boostLabel: String { "\(String(format: "%g", boostRate))× 快进" }
-
     private var rateText: String {
         rate == 1 ? "1×" : "\(String(format: "%g", rate))×"
     }
@@ -796,12 +794,12 @@ private struct PlayerCore: View {
                         .shadow(color: .black.opacity(0.5), radius: 12, y: 4)
 
                     Text(Fmt.time(displayTime))
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 11.5, weight: .semibold))
                         .monospacedDigit()
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color.black.opacity(0.55), in: Capsule())
+                        .foregroundStyle(Palette.text)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .glass(Capsule(), style: .hud)
                 }
                 .padding(.bottom, isLandscape ? 78 : 94)
             }
@@ -867,12 +865,7 @@ private struct PlayerCore: View {
     private func toastView(_ text: String) -> some View {
         VStack {
             Spacer(minLength: 0)
-            Text(text)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Palette.text)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .glass(Capsule())
+            HUDLabel(text: text)
                 .padding(.bottom, 120)
         }
         .allowsHitTesting(false)
@@ -885,15 +878,20 @@ private struct PlayerCore: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color.black.opacity(0.34))
+                        .fill(Color.black.opacity(0.42))
                     Capsule()
-                        .fill(Color.white)
+                        .fill(Color.white.opacity(0.92))
                         .frame(
                             width: max(4, geo.size.width * CGFloat(min(max(level.value, 0), 1)))
                         )
                 }
                 .frame(height: 4)
-                .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
+                // 细条太窄，透明之后必须靠一圈描边把边界找回来
+                .overlay {
+                    Capsule()
+                        .strokeBorder(Color.white.opacity(0.16), lineWidth: 0.5)
+                }
+                .shadow(color: .black.opacity(0.30), radius: 6, y: 2)
             }
             .frame(width: 180, height: 4)
             .padding(.top, isLandscape ? 14 : 54)
@@ -904,17 +902,18 @@ private struct PlayerCore: View {
         .transition(.opacity)
     }
 
-    /// 长按 2× 的提示：水平居中、顶栏下方一点，做小，绝不压中部按钮
+    /// 长按倍速的提示：水平居中、顶栏下方一点，做小，绝不压中部按钮
     private var boostHint: some View {
         VStack(spacing: 0) {
-            Text(boostLabel)
-                .font(.system(size: 12, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(Palette.text)
-                .padding(.horizontal, 11)
-                .padding(.vertical, 6)
-                .glass(Capsule(), style: .stage)
-                .padding(.top, isLandscape ? 54 : 60)
+            HUDLabel(
+                text: "\(String(format: "%g", boostRate))×",
+                detail: "快进",
+                icon: "chevron.forward.2",
+                iconSize: 10,
+                fontSize: 13,
+                weight: .semibold
+            )
+            .padding(.top, isLandscape ? 52 : 58)
             Spacer(minLength: 0)
         }
         .allowsHitTesting(false)

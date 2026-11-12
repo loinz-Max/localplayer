@@ -76,7 +76,6 @@ struct LibraryView: View {
 
     @State private var toastText: String?
     @State private var toastToken = 0
-    @State private var isImporting = false
 
     private let sidePadding: CGFloat = 16
     private let columnSpacing: CGFloat = 12
@@ -179,7 +178,17 @@ struct LibraryView: View {
             }
         }
         .animation(.easeOut(duration: 0.18), value: playingItem?.id)
-        .overlay { importingOverlay }
+        // 导入进度贴在底部，不铺遮罩：导入期间照样能滑、能点开视频。
+        // 位置和 toast 一致，导入结束的汇总提示正好接在同一处。
+        .overlay(alignment: .bottom) {
+            if let importProgress = library.importProgress {
+                ImportProgressHUD(progress: importProgress)
+                    .padding(.bottom, 28)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .zIndex(20)
+            }
+        }
+        .animation(.easeOut(duration: 0.22), value: library.importProgress == nil)
         .overlay(alignment: .bottom) {
             if selecting {
                 selectionBar
@@ -872,35 +881,10 @@ struct LibraryView: View {
     @ViewBuilder
     private var toastView: some View {
         if let toastText {
-            Text(toastText)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Palette.text)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .glass(Capsule())
+            HUDLabel(text: toastText)
                 .padding(.bottom, 28)
                 .transition(.opacity)
                 .allowsHitTesting(false)
-        }
-    }
-
-    @ViewBuilder
-    private var importingOverlay: some View {
-        if isImporting {
-            ZStack {
-                Color.black.opacity(0.45).ignoresSafeArea()
-                VStack(spacing: 12) {
-                    ProgressView()
-                        .progressViewStyle(.circular)
-                        .tint(Palette.text)
-                    Text("正在从相册导入…")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.text)
-                }
-                .padding(.horizontal, 26)
-                .padding(.vertical, 22)
-                .glass(cornerRadius: 14)
-            }
         }
     }
 
@@ -984,22 +968,23 @@ struct LibraryView: View {
     private func handleFileImport(_ result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
-            let count = library.importURLs(urls)
-            toast(count > 0 ? "已导入 \(count) 个文件" : "没有导入成功")
+            guard !urls.isEmpty else { return }
+            Task {
+                let outcome = await library.importItems(urls.map { ImportItem(url: $0) })
+                toast(outcome.summary)
+            }
         case .failure:
             toast("导入失败")
         }
     }
 
     private func importMovies(_ movies: [PickedMovie]) {
-        isImporting = true
-        let folder = library.currentFolder
+        guard !movies.isEmpty else { return }
         Task {
-            let count = await PhotoImporter.importFiles(movies, into: folder, library: library)
-            await MainActor.run {
-                isImporting = false
-                toast(count > 0 ? "已从相册导入 \(count) 个视频" : "没有导入成功")
-            }
+            let outcome = await library.importItems(
+                movies.map { ImportItem(url: $0.url, preferredName: $0.name, moving: true) }
+            )
+            toast(outcome.summary)
         }
     }
 

@@ -13,10 +13,11 @@ struct FolderChoice: Identifiable, Hashable {
 final class LibraryStore: ObservableObject {
     @Published private(set) var allItems: [VideoItem] = []
     @Published private(set) var folders: [String] = []
-    @Published var query: String = ""
     /// nil 表示根目录
     @Published var currentFolder: String?
     @Published private(set) var totalSize: Int64 = 0
+    /// 正在导入的进度；nil 表示没有在导入
+    @Published private(set) var importProgress: ImportProgress?
 
     let documents: URL
 
@@ -106,11 +107,7 @@ final class LibraryStore: ObservableObject {
     /// 当前目录下的视频（未排序，排序交给视图，因为「最近播放」需要 ProgressStore）
     var items: [VideoItem] {
         let folder = currentFolder ?? ""
-        return allItems.filter { item in
-            guard item.folder == folder else { return false }
-            if query.isEmpty { return true }
-            return item.name.localizedCaseInsensitiveContains(query)
-        }
+        return allItems.filter { $0.folder == folder }
     }
 
     /// 当前目录下的直接子文件夹
@@ -137,26 +134,33 @@ final class LibraryStore: ObservableObject {
 
     // MARK: - 导入 / 删除
 
-    /// 返回成功导入的数量
-    @discardableResult
-    func importURLs(_ urls: [URL]) -> Int {
-        var count = 0
-        let target = currentFolder.map { documents.appendingPathComponent($0) } ?? documents
+    /// 逐个搬进当前目录，每搬完一个更新一次进度。
+    ///
+    /// 真正的文件 I/O 在 `ImportService` 的 detached task 里跑，这里只在主线程
+    /// 收结果、推进度（`@Published` 必须回到主 actor 才能改）。
+    /// 之前 `copyItem` 是同步执行的，大文件会冻界面。
+    @MainActor
+    func importItems(_ items: [ImportItem]) async -> ImportResult {
+        guard !items.isEmpty else { return ImportResult() }
+
+        let target = currentFolder.map { documents.appendingPathComponent($0, isDirectory: true) } ?? documents
         try? FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
 
-        for url in urls {
-            let scoped = url.startAccessingSecurityScopedResource()
-            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-            let destination = FileManager.default.uniqueURL(in: target, preferredName: url.lastPathComponent)
-            do {
-                try FileManager.default.copyItem(at: url, to: destination)
-                count += 1
-            } catch {
-                // 忽略单个文件失败，继续下一个
-            }
+        var result = ImportResult()
+        result.total = items.count
+        importProgress = ImportProgress(done: 0, total: items.count)
+
+        for (index, item) in items.enumerated() {
+            let one = await ImportService.bring(item, into: target)
+            result.copied += one.copied
+            result.renamed += one.renamed
+            result.failed += one.failed
+            importProgress = ImportProgress(done: index + 1, total: items.count)
         }
-        if count > 0 { reload() }
-        return count
+
+        importProgress = nil
+        if result.copied > 0 { reload() }
+        return result
     }
 
     func delete(_ item: VideoItem) {
