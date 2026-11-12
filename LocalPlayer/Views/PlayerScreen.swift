@@ -983,8 +983,10 @@ private struct PlayerCore: View {
                 case "lock": touchLocked = true
                 case "level": level = LevelHUD(value: 0.62)
                 case "boost":
+                    // 只点亮提示，不真的把倍速加上去：
+                    // 示例视频只有 8 秒，2× 会在截图前播完并自动切下一集，
+                    // 父视图一重建 boosting 就被重置，截出来什么都没有。
                     boosting = true
-                    model.setRate(Float(AppSettings.storedLongPressRate()))
                 default: queueOpen = true
                 }
             }

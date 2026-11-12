@@ -111,7 +111,7 @@ jobs:
           snap 09-player-speed "-screen player -panel speed -keepChrome 1" 5
           snap 10-player-queue "-screen player -panel queue -keepChrome 1" 5
           snap 11-level "-screen player -panel level -keepChrome 1" 5
-          snap 15-boost "-screen player -panel boost -keepChrome 1" 5
+          snap 15-boost "-screen player -panel boost -keepChrome 1" 3
           snap 12-list "-screen list -seedDemo 1" 5
           snap 13-select "-screen select -seedDemo 1" 5
           snap 14-more "-screen more -seedDemo 1" 5
