@@ -1,6 +1,8 @@
-# 本地播放器（LocalPlayer）
+# 幕间（Interlude）
 
 一个人的 iOS 本地视频播放器。SwiftUI + AVPlayer，**零第三方依赖**。
+
+> 工程名与仓库名仍是 `LocalPlayer`，bundle id 仍是 `com.loinzmax.localplayer`——改名只动桌面显示名，不动这些，才能覆盖安装保住数据。
 
 视频只存在 App 的 `Documents` 目录里，不联网、不登录、不上传任何服务器。
 

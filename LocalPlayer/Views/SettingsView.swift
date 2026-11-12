@@ -391,9 +391,15 @@ struct SettingsView: View {
             divider
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("本地播放器")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Palette.text)
+                HStack(alignment: .firstTextBaseline, spacing: 7) {
+                    Text("幕间")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Palette.text)
+                    Text("INTERLUDE")
+                        .font(.system(size: 9, weight: .semibold))
+                        .tracking(1.4)
+                        .foregroundStyle(Palette.tertiaryText)
+                }
                 Text("视频只存在本机 Documents 目录，不联网、不登录、不上传。用「文件」App 可以直接看到这些文件。")
                     .font(.system(size: 12))
                     .foregroundStyle(Palette.secondaryText)

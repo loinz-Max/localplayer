@@ -1,4 +1,4 @@
-# 交接文档 · LocalPlayer（本地播放器）
+# 交接文档 · 幕间（工程名 LocalPlayer）
 
 > 最后更新：2026-11-12 16:30
 > 仓库：<https://github.com/loinz-Max/localplayer>（public，可自由 clone）
@@ -178,7 +178,7 @@ localplayer/
 **P1 · 系统集成**（能力已经具备，只差接线）
 
 - 锁屏 / 控制中心媒体控制：`Info.plist` 已开 `UIBackgroundModes: audio`，`AVAudioSession` 是 `.playback`，切后台声音会继续，但**没接 `MPNowPlayingInfoCenter` / `MPRemoteCommandCenter`**，所以锁屏是空的、不能暂停和切集。约 100 行。
-- 画中画：加 `AVPictureInPictureController`，约 100 行 + delegate。本地播放器最实用的场景就是「看视频回微信」。
+- 画中画：加 `AVPictureInPictureController`，约 100 行 + delegate。这个 App 最实用的场景就是「看视频回微信」。
 
 **P2 · 小功能补齐**
 
