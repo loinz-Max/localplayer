@@ -22,8 +22,17 @@ final class OrientationController {
             .first
         else { return }
 
-        // 先把新的 mask 通知下去，再请求转屏，否则系统会按旧方向拒绝
-        scene.keyWindow?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        // 先把新的 mask 通知下去，再请求转屏，否则系统会按旧方向拒绝。
+        // 逐个窗口、逐个被呈现的控制器通知一遍：只通知根控制器时，
+        // 挂在它上面的 sheet / 覆盖层会继续用旧方向。
+        for window in scene.windows {
+            var controller = window.rootViewController
+            while let current = controller {
+                current.setNeedsUpdateOfSupportedInterfaceOrientations()
+                controller = current.presentedViewController
+            }
+        }
+
         scene.requestGeometryUpdate(.iOS(interfaceOrientations: newMask)) { _ in }
     }
 

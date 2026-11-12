@@ -7,6 +7,8 @@ import UIKit
 
 struct PlayerScreen: View {
     let queue: [VideoItem]
+    /// 由调用方直接关闭（同层覆盖呈现时用）；为 nil 时退回系统的 dismiss
+    var onDismiss: (() -> Void)?
 
     @State private var current: VideoItem
     /// 倍速与模式只在本次播放有效：放在这一层，切集不丢，退出播放页即丢
@@ -17,8 +19,9 @@ struct PlayerScreen: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    init(item: VideoItem, queue: [VideoItem]) {
+    init(item: VideoItem, queue: [VideoItem], onDismiss: (() -> Void)? = nil) {
         self.queue = queue
+        self.onDismiss = onDismiss
         _current = State(initialValue: item)
         // 起始倍速/模式从设置里取；键名与读写都收在 AppSettings 里
         _rate = State(initialValue: 1.0)
@@ -32,17 +35,25 @@ struct PlayerScreen: View {
             rate: $rate,
             mode: $mode,
             queueOpen: $queueOpen,
-            onClose: { dismiss() },
+            onClose: { close() },
             onAdvance: { next in
                 if let next {
                     current = next
                 } else {
-                    dismiss()
+                    close()
                 }
             }
         )
         .id(current.id)
         .preferredColorScheme(.dark)
+    }
+
+    private func close() {
+        if let onDismiss {
+            onDismiss()
+        } else {
+            dismiss()
+        }
     }
 }
 
@@ -50,12 +61,6 @@ struct PlayerScreen: View {
 
 private enum DragMode {
     case none, seek, brightness, volume
-}
-
-private struct HUD: Equatable {
-    var icon: String
-    var text: String
-    var progress: Double?
 }
 
 /// 亮度 / 音量：只有一个数值，画成顶部的一根细条
@@ -91,9 +96,6 @@ private struct PlayerCore: View {
 
     /// 防误触：锁上后除了「长按 1 秒解除」以外的所有触摸都不响应
     @State private var touchLocked = false
-
-    @State private var hud: HUD?
-    @State private var hudToken = 0
 
     /// 亮度 / 音量：顶部居中的横向长条，不占画面中间
     @State private var level: LevelHUD?
@@ -157,7 +159,7 @@ private struct PlayerCore: View {
                     .onTapGesture { handleTap() }
                     .onLongPressGesture(
                         minimumDuration: 0.6,
-                        maximumDistance: 60,
+                        maximumDistance: 12,
                         perform: {},
                         onPressingChanged: { pressing in
                             handlePressChange(pressing)
@@ -181,8 +183,6 @@ private struct PlayerCore: View {
             }
 
             speedPanelLayer
-
-            hudLayer
 
             if boosting {
                 boostHint
@@ -286,6 +286,14 @@ private struct PlayerCore: View {
 
     private func handleDragChanged(_ value: DragGesture.Value, size: CGSize) {
         guard !touchLocked else { return }
+
+        // 长按已经进了加速：手指一移动就立刻退出加速，交给滑动去跳进度。
+        // 两个手势不能同时生效，否则会边加速边跳，手感很飘。
+        if boosting {
+            pressToken += 1
+            endBoost()
+        }
+
         if dragMode == .none {
             let dx = abs(value.translation.width)
             let dy = abs(value.translation.height)
@@ -312,12 +320,8 @@ private struct PlayerCore: View {
             let span = min(max(model.duration * 0.4, 60), 240)
             let ratio = Double(value.translation.width / max(size.width, 1))
             let target = min(max(0, dragStartTime + ratio * span), max(model.duration - 0.5, 0))
+            // 只跟手改进度，不弹任何提示
             seekTarget = target
-            hud = HUD(
-                icon: "timeline.selection",
-                text: "\(Fmt.time(target)) / \(Fmt.time(model.duration))",
-                progress: model.duration > 0 ? target / model.duration : nil
-            )
 
         case .brightness:
             let delta = -value.translation.height / max(size.height * 0.6, 1)
@@ -339,7 +343,6 @@ private struct PlayerCore: View {
     private func handleDragEnded() {
         if dragMode == .seek {
             model.seek(to: seekTarget)
-            fadeHUD(after: 0.6)
         }
         if dragMode == .brightness || dragMode == .volume {
             fadeLevel(after: 0.5)
@@ -400,22 +403,7 @@ private struct PlayerCore: View {
         }
     }
 
-    // MARK: - HUD / 显隐
-
-    private func flashHUD(_ value: HUD, duration: Double = 0.9) {
-        hudToken += 1
-        hud = value
-        fadeHUD(after: duration)
-    }
-
-    private func fadeHUD(after delay: Double) {
-        let token = hudToken
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            if hudToken == token {
-                withAnimation(.easeOut(duration: 0.2)) { hud = nil }
-            }
-        }
-    }
+    // MARK: - 显隐
 
     private func showToast(_ text: String) {
         withAnimation(.easeOut(duration: 0.15)) { toastText = text }
@@ -467,7 +455,6 @@ private struct PlayerCore: View {
             lockButtonVisible = false
         }
         withAnimation(.easeInOut(duration: 0.2)) { chromeVisible = false }
-        hud = nil
         level = nil
     }
 
@@ -843,42 +830,6 @@ private struct PlayerCore: View {
         }
         .allowsHitTesting(false)
         .transition(.opacity)
-    }
-
-    @ViewBuilder
-    private var hudLayer: some View {
-        if let hud {
-            VStack(spacing: 9) {
-                Image(systemName: hud.icon)
-                    .font(.system(size: 24, weight: .medium))
-                    .foregroundStyle(Palette.text)
-
-                Text(hud.text)
-                    .font(.system(size: 13, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(Palette.text)
-
-                if let value = hud.progress {
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule().fill(Color.white.opacity(0.26))
-                            Capsule()
-                                .fill(Palette.text.opacity(0.86))
-                                .frame(width: max(0, geo.size.width * CGFloat(min(max(value, 0), 1))))
-                        }
-                    }
-                    .frame(width: 120, height: 4)
-                }
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 16)
-            .background(
-                Color.black.opacity(0.58),
-                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-            )
-            .allowsHitTesting(false)
-            .transition(.opacity)
-        }
     }
 
     private func errorLayer(_ message: String) -> some View {

@@ -167,6 +167,18 @@ struct LibraryView: View {
             .animation(.easeOut(duration: 0.16), value: target)
             .animation(.easeOut(duration: 0.16), value: folderTarget)
         }
+        // 播放页走同层覆盖而不是 fullScreenCover：
+        // 模态控制器会绕开 AppDelegate 的方向掩码，导致「只有播放页能转」。
+        .overlay {
+            if let item = playingItem {
+                PlayerScreen(item: item, queue: playingQueue) {
+                    withAnimation(.easeOut(duration: 0.18)) { playingItem = nil }
+                }
+                .transition(.opacity)
+                .zIndex(10)
+            }
+        }
+        .animation(.easeOut(duration: 0.18), value: playingItem?.id)
         .overlay { importingOverlay }
         .overlay(alignment: .bottom) {
             if selecting {
@@ -198,9 +210,6 @@ struct LibraryView: View {
                 guard !movies.isEmpty else { return }
                 importMovies(movies)
             }
-        }
-        .fullScreenCover(item: $playingItem) { item in
-            PlayerScreen(item: item, queue: playingQueue)
         }
         .sheet(isPresented: $showSettings) {
             SettingsView()
@@ -428,7 +437,7 @@ struct LibraryView: View {
                 if Date().timeIntervalSince(menuGuard) > 0.35 { closeMenus() }
             } else {
                 playingQueue = sortedVideos
-                playingItem = item
+                withAnimation(.easeOut(duration: 0.18)) { playingItem = item }
             }
         }
         .onLongPressGesture(minimumDuration: 0.38) {
@@ -537,7 +546,7 @@ struct LibraryView: View {
                 if Date().timeIntervalSince(menuGuard) > 0.35 { closeMenus() }
             } else {
                 playingQueue = sortedVideos
-                playingItem = item
+                withAnimation(.easeOut(duration: 0.18)) { playingItem = item }
             }
         }
         .onLongPressGesture(minimumDuration: 0.38) {
