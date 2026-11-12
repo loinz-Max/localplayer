@@ -84,7 +84,7 @@ struct LibraryView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .top) {
-                Palette.background.ignoresSafeArea()
+                backgroundLayer
 
                 VStack(spacing: 0) {
                     topBar
@@ -874,6 +874,22 @@ struct LibraryView: View {
         // 不套卡片框，也不放任何按钮：空目录只用一句话说清楚
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 40)
+    }
+
+    // MARK: - 背景
+
+    /// 纯黑背景上玻璃永远是黑的 —— 没有东西可透，材质就看不出层次。
+    /// 顶部压一层极淡的白雾（2.8%），控件下面才有底色可模糊，整页也不至于死黑。
+    private var backgroundLayer: some View {
+        Palette.background
+            .overlay {
+                LinearGradient(
+                    colors: [Color.white.opacity(0.028), .clear],
+                    startPoint: .top,
+                    endPoint: .init(x: 0.5, y: 0.42)
+                )
+            }
+            .ignoresSafeArea()
     }
 
     // MARK: - 浮层

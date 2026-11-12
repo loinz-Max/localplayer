@@ -17,9 +17,9 @@ struct GlassStyle {
     /// 控件：按钮、运输胶囊、进度条胶囊
     /// 染色 alpha 压得越低越透；透明之后靠描边把边界找回来，这是玻璃感的关键。
     static let control = GlassStyle(
-        top: Color.white.opacity(0.11),
-        bottom: Color.white.opacity(0.035),
-        strokeTop: Color.white.opacity(0.26),
+        top: Color.white.opacity(0.095),
+        bottom: Color.white.opacity(0.028),
+        strokeTop: Color.white.opacity(0.30),
         strokeBottom: Color.white.opacity(0.05),
         shadowRadius: 12,
         shadowY: 4,
@@ -28,9 +28,9 @@ struct GlassStyle {
 
     /// 菜单、抽屉、弹窗
     static let panel = GlassStyle(
-        top: Color.black.opacity(0.27),
-        bottom: Color.black.opacity(0.37),
-        strokeTop: Color.white.opacity(0.22),
+        top: Color.black.opacity(0.21),
+        bottom: Color.black.opacity(0.31),
+        strokeTop: Color.white.opacity(0.26),
         strokeBottom: Color.white.opacity(0.04),
         shadowRadius: 28,
         shadowY: 10,
@@ -40,9 +40,9 @@ struct GlassStyle {
     /// 播放页：压在视频画面上。浅色染色在亮画面上会糊掉，这里用暗色，
     /// 白图标才有对比度。
     static let stage = GlassStyle(
-        top: Color.black.opacity(0.31),
-        bottom: Color.black.opacity(0.43),
-        strokeTop: Color.white.opacity(0.26),
+        top: Color.black.opacity(0.25),
+        bottom: Color.black.opacity(0.35),
+        strokeTop: Color.white.opacity(0.30),
         strokeBottom: Color.white.opacity(0.05),
         shadowRadius: 12,
         shadowY: 4,
@@ -51,9 +51,9 @@ struct GlassStyle {
 
     /// 播放条上的浅色底（比 control 再淡一点）
     static let subtle = GlassStyle(
-        top: Color.white.opacity(0.085),
-        bottom: Color.white.opacity(0.03),
-        strokeTop: Color.white.opacity(0.20),
+        top: Color.white.opacity(0.075),
+        bottom: Color.white.opacity(0.025),
+        strokeTop: Color.white.opacity(0.24),
         strokeBottom: Color.white.opacity(0.04),
         shadowRadius: 8,
         shadowY: 3,
@@ -63,9 +63,9 @@ struct GlassStyle {
     /// 轻提示（toast / 倍速 / 导入进度）：比特意做小，比 stage 再透一档，
     /// 投影放大、染色降低，让它像浮在画面上而不是一块贴纸。
     static let hud = GlassStyle(
-        top: Color.black.opacity(0.28),
-        bottom: Color.black.opacity(0.40),
-        strokeTop: Color.white.opacity(0.28),
+        top: Color.black.opacity(0.22),
+        bottom: Color.black.opacity(0.32),
+        strokeTop: Color.white.opacity(0.32),
         strokeBottom: Color.white.opacity(0.06),
         shadowRadius: 18,
         shadowY: 6,
