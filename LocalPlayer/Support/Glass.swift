@@ -1,14 +1,14 @@
 import SwiftUI
-import UIKit
 
 /// 白色液态玻璃配方。
 ///
-/// 关键点：`Material` 会跟随系统深浅色走，App 是深色界面，所以
-/// `.ultraThinMaterial` 渲染出来是一层**灰**——这就是「灰质」的根源，
-/// 后面叠多少白色染色都压不回来。
+/// 关键点：`Material` 的明暗跟着 `colorScheme` 走。App 是深色界面，
+/// 直接用 `.ultraThinMaterial` 渲染出来是一层**灰**——这就是「灰质」的根源。
+/// 这里给材质单独注入 `colorScheme = .light`，强制它走浅色雾面，
+/// 深背景透上来才会变成白雾。
 ///
-/// 这里改用 `UIVisualEffectView` + `systemUltraThinMaterialLight`：
-/// 强制浅色雾化材质，深色背景透上来会被提亮成白色磨砂，才是真正的白玻璃。
+/// 注意别再改回 `UIViewRepresentable` 包 `UIVisualEffectView`：那是真正的
+/// UIView 子视图，会盖在同一层 SwiftUI 画的白色染色之上，染色等于没加。
 ///
 /// 层序：
 ///   1. 浅色雾化材质 —— 背景被模糊并提亮成白雾
@@ -31,12 +31,12 @@ struct GlassStyle {
     var shadowRadius: CGFloat
     var shadowY: CGFloat
     var shadowOpacity: Double
-    var blur: UIBlurEffect.Style = .systemUltraThinMaterialLight
+    var material: Material = .ultraThinMaterial
 
     /// 资料库这类深色底上的圆键、胶囊
     static let control = GlassStyle(
-        tintTop: Color.white.opacity(0.52),
-        tintBottom: Color.white.opacity(0.10),
+        tintTop: Color.white.opacity(0.34),
+        tintBottom: Color.white.opacity(0.08),
         sheen: 0.90,
         rimTop: Color.white.opacity(1.0),
         rimBottom: Color.white.opacity(0.55),
@@ -44,13 +44,13 @@ struct GlassStyle {
         shadowRadius: 12,
         shadowY: 4,
         shadowOpacity: 0.22,
-        blur: .systemThinMaterialLight
+        material: .ultraThinMaterial
     )
 
     /// 菜单、抽屉、弹窗：要压住内容，材质取厚一点
     static let panel = GlassStyle(
-        tintTop: Color.white.opacity(0.46),
-        tintBottom: Color.white.opacity(0.12),
+        tintTop: Color.white.opacity(0.30),
+        tintBottom: Color.white.opacity(0.10),
         sheen: 0.80,
         rimTop: Color.white.opacity(1.0),
         rimBottom: Color.white.opacity(0.50),
@@ -58,13 +58,13 @@ struct GlassStyle {
         shadowRadius: 26,
         shadowY: 10,
         shadowOpacity: 0.30,
-        blur: .systemThinMaterialLight
+        material: .thinMaterial
     )
 
     /// 播放页：压在视频画面上，同样的白玻璃，但要更实一点才压得住亮画面
     static let stage = GlassStyle(
-        tintTop: Color.white.opacity(0.48),
-        tintBottom: Color.white.opacity(0.14),
+        tintTop: Color.white.opacity(0.32),
+        tintBottom: Color.white.opacity(0.10),
         sheen: 0.82,
         rimTop: Color.white.opacity(1.0),
         rimBottom: Color.white.opacity(0.50),
@@ -72,13 +72,13 @@ struct GlassStyle {
         shadowRadius: 14,
         shadowY: 5,
         shadowOpacity: 0.26,
-        blur: .systemThinMaterialLight
+        material: .ultraThinMaterial
     )
 
     /// 更淡一档，用于进度条这类大面积浅底
     static let subtle = GlassStyle(
-        tintTop: Color.white.opacity(0.32),
-        tintBottom: Color.white.opacity(0.08),
+        tintTop: Color.white.opacity(0.18),
+        tintBottom: Color.white.opacity(0.05),
         sheen: 0.66,
         rimTop: Color.white.opacity(0.94),
         rimBottom: Color.white.opacity(0.30),
@@ -89,31 +89,15 @@ struct GlassStyle {
     )
 }
 
-// MARK: - 浅色雾化底
-
-private struct LightBlur: UIViewRepresentable {
-    let style: UIBlurEffect.Style
-
-    func makeUIView(context: Context) -> UIVisualEffectView {
-        let view = UIVisualEffectView(effect: UIBlurEffect(style: style))
-        view.isUserInteractionEnabled = false
-        view.backgroundColor = .clear
-        return view
-    }
-
-    func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
-        uiView.effect = UIBlurEffect(style: style)
-    }
-}
-
 private struct GlassFill<S: InsettableShape>: View {
     let shape: S
     let style: GlassStyle
 
     var body: some View {
         ZStack {
-            // 1. 浅色雾化：深背景透上来变白雾，这是"白玻璃"和"灰块"的分界
-            LightBlur(style: style.blur)
+            // 1. 浅色雾化：Material 的明暗跟着 colorScheme 走，强制 light 才有白雾
+            shape.fill(style.material)
+                .environment(\.colorScheme, .light)
 
             // 2. 白色染色
             shape.fill(
