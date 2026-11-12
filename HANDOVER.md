@@ -3,7 +3,7 @@
 > 最后更新：2026-11-11 23:05
 > 仓库：<https://github.com/loinz-Max/localplayer>（**public**）
 > 当前状态：**0.0.1 已装，前两批改动已上** —— ①播完可重播/自动已看/退出还亮度；②玻璃调透、提示统一 HUD、导入后台化、删死代码。CI 绿，等真机验收。
-> 最新提交：`47501e6`｜截图见 `ci-shots` 分支（`shots: 47501e6`）
+> 最新提交：`3ae236a`（仓库整理：README/DESIGN 对齐、gitignore 修正、归档验收清单、删死代码）｜截图见 `ci-shots` 分支（`shots: <对应 commit>`）
 
 ---
 
