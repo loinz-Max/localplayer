@@ -12,7 +12,8 @@ import UIKit
 ///
 /// 层序：
 ///   1. 浅色雾化材质 —— 背景被模糊并提亮成白雾
-///   2. 白色染色 —— 顶部更白、底部略收，形成厚薄
+///   2. 白色染色 —— 顶部接近纯白、底部只到四成，这条明暗差就是玻璃的"弧面"
+///      （均匀加白在纯黑底上只会得到一块灰，必须有这个差才像玻璃）
 ///   3. 左上镜面高光 —— 让平面看起来是凸的
 ///   4. 底部厚度 —— 极淡的暗边，制造玻璃体感（白玻璃只要一点点）
 ///   5. 边缘光 —— 上沿接近纯白、下沿半透，1pt 渐变描边
@@ -34,9 +35,9 @@ struct GlassStyle {
 
     /// 资料库这类深色底上的圆键、胶囊
     static let control = GlassStyle(
-        tintTop: Color.white.opacity(0.48),
-        tintBottom: Color.white.opacity(0.26),
-        sheen: 0.78,
+        tintTop: Color.white.opacity(0.90),
+        tintBottom: Color.white.opacity(0.38),
+        sheen: 0.85,
         rimTop: Color.white.opacity(1.0),
         rimBottom: Color.white.opacity(0.42),
         depth: 0.00,
@@ -48,9 +49,9 @@ struct GlassStyle {
 
     /// 菜单、抽屉、弹窗：要压住内容，材质取厚一点
     static let panel = GlassStyle(
-        tintTop: Color.white.opacity(0.50),
-        tintBottom: Color.white.opacity(0.28),
-        sheen: 0.66,
+        tintTop: Color.white.opacity(0.82),
+        tintBottom: Color.white.opacity(0.42),
+        sheen: 0.72,
         rimTop: Color.white.opacity(1.0),
         rimBottom: Color.white.opacity(0.38),
         depth: 0.02,
@@ -62,9 +63,9 @@ struct GlassStyle {
 
     /// 播放页：压在视频画面上，同样的白玻璃，但要更实一点才压得住亮画面
     static let stage = GlassStyle(
-        tintTop: Color.white.opacity(0.46),
-        tintBottom: Color.white.opacity(0.26),
-        sheen: 0.70,
+        tintTop: Color.white.opacity(0.86),
+        tintBottom: Color.white.opacity(0.44),
+        sheen: 0.76,
         rimTop: Color.white.opacity(1.0),
         rimBottom: Color.white.opacity(0.38),
         depth: 0.02,
@@ -76,9 +77,9 @@ struct GlassStyle {
 
     /// 更淡一档，用于进度条这类大面积浅底
     static let subtle = GlassStyle(
-        tintTop: Color.white.opacity(0.34),
-        tintBottom: Color.white.opacity(0.16),
-        sheen: 0.56,
+        tintTop: Color.white.opacity(0.62),
+        tintBottom: Color.white.opacity(0.24),
+        sheen: 0.62,
         rimTop: Color.white.opacity(0.94),
         rimBottom: Color.white.opacity(0.30),
         depth: 0.00,
