@@ -115,6 +115,9 @@ private struct PlayerCore: View {
 
     @State private var scrubFraction: Double?
     @State private var isScrubbing = false
+    /// 拖动时的小窗预览帧
+    @State private var previewFrame: UIImage?
+    @State private var previewToken = 0
 
     @State private var pendingResume: Double = 0
     @State private var didRestore = false
@@ -183,6 +186,8 @@ private struct PlayerCore: View {
             }
 
             speedPanelLayer
+
+            scrubPreviewLayer
 
             if boosting {
                 boostHint
@@ -320,8 +325,11 @@ private struct PlayerCore: View {
             let span = min(max(model.duration * 0.4, 60), 240)
             let ratio = Double(value.translation.width / max(size.width, 1))
             let target = min(max(0, dragStartTime + ratio * span), max(model.duration - 0.5, 0))
-            // 只跟手改进度，不弹任何提示
+            // 不弹提示，但底部进度条要跟着手走，右侧小窗给一帧画面
             seekTarget = target
+            isScrubbing = true
+            scrubFraction = model.duration > 0 ? target / model.duration : 0
+            requestPreview(at: target)
 
         case .brightness:
             let delta = -value.translation.height / max(size.height * 0.6, 1)
@@ -343,6 +351,9 @@ private struct PlayerCore: View {
     private func handleDragEnded() {
         if dragMode == .seek {
             model.seek(to: seekTarget)
+            isScrubbing = false
+            scrubFraction = nil
+            withAnimation(.easeOut(duration: 0.12)) { previewFrame = nil }
         }
         if dragMode == .brightness || dragMode == .volume {
             fadeLevel(after: 0.5)
@@ -718,14 +729,17 @@ private struct PlayerCore: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
+                        let fraction = Double(min(max(value.location.x / width, 0), 1))
                         isScrubbing = true
-                        scrubFraction = Double(min(max(value.location.x / width, 0), 1))
+                        scrubFraction = fraction
+                        requestPreview(at: fraction * model.duration)
                     }
                     .onEnded { value in
                         let x = min(max(value.location.x / width, 0), 1)
                         model.seek(to: Double(x) * model.duration)
                         isScrubbing = false
                         scrubFraction = nil
+                        withAnimation(.easeOut(duration: 0.12)) { previewFrame = nil }
                     }
             )
         }
@@ -735,6 +749,54 @@ private struct PlayerCore: View {
     // MARK: - 倍速面板
 
     /// 浮在倍速键上方，右缘与倍速键对齐；宽度只有 110，不遮画面中部
+    /// 拖动进度时的小窗：进度条上方居中，一帧画面 + 目标时间
+    @ViewBuilder
+    private var scrubPreviewLayer: some View {
+        if isScrubbing, let previewFrame {
+            VStack {
+                Spacer(minLength: 0)
+
+                VStack(spacing: 6) {
+                    Image(uiImage: previewFrame)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: isLandscape ? 148 : 168)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.75)
+                        }
+                        .shadow(color: .black.opacity(0.5), radius: 12, y: 4)
+
+                    Text(Fmt.time(displayTime))
+                        .font(.system(size: 12, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.black.opacity(0.55), in: Capsule())
+                }
+                .padding(.bottom, isLandscape ? 78 : 94)
+            }
+            .allowsHitTesting(false)
+            .transition(.opacity)
+        }
+    }
+
+    /// 抓预览帧：结果回来时如果已经拖到别处就丢掉，避免画面跳来跳去
+    private func requestPreview(at seconds: Double) {
+        previewToken += 1
+        let token = previewToken
+        Task {
+            let frame = await ScrubPreviewer.shared.image(at: seconds)
+            guard let frame else { return }
+            await MainActor.run {
+                guard previewToken == token else { return }
+                previewFrame = frame
+            }
+        }
+    }
+
     @ViewBuilder
     private var speedPanelLayer: some View {
         if speedOpen {
@@ -874,6 +936,8 @@ private struct PlayerCore: View {
     // MARK: - 生命周期
 
     private func setup() {
+        ScrubPreviewer.shared.prepare(for: item.url)
+        previewFrame = nil
         model.onEnded = { handleEnded() }
         model.setRate(Float(rate))
         pendingResume = settings.resumePlayback ? progress.position(for: item.id) : 0

@@ -840,7 +840,17 @@ struct LibraryView: View {
 
     private var emptyState: some View {
         VStack(spacing: 10) {
-            if library.allItems.isEmpty {
+            if library.currentFolder != nil {
+                Text("这个文件夹里还没有视频")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Palette.text)
+
+                Text("点右上角的导入按钮\n导入的视频会放进这个文件夹")
+                    .font(.system(size: 12.5))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(3)
+                    .foregroundStyle(Palette.tertiaryText)
+            } else {
                 Text("还没有视频")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Palette.text)
@@ -850,64 +860,9 @@ struct LibraryView: View {
                     .multilineTextAlignment(.center)
                     .lineSpacing(3)
                     .foregroundStyle(Palette.tertiaryText)
-            } else {
-                // 库里有东西、这个目录却是空的：说清情况，别让人以为文件丢了
-                Text("这个目录里没有视频")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Palette.text)
-
-                Text("资料库里共有 \(library.allItems.count) 个视频，都在其他目录")
-                    .font(.system(size: 12.5))
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(3)
-                    .foregroundStyle(Palette.tertiaryText)
-
-                if library.currentFolder != nil {
-                    Button {
-                        library.currentFolder = nil
-                    } label: {
-                        Text("回到资料库")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 20)
-                            .frame(height: 36)
-                            .background(Palette.accent, in: Capsule())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-
-            if !library.allItems.isEmpty {
-                HStack(spacing: 8) {
-                    Button {
-                        showPhotoPicker = true
-                    } label: {
-                        Label("相册", systemImage: "photo.on.rectangle")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 40)
-                            .background(Palette.accent, in: Capsule())
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        showFileImporter = true
-                    } label: {
-                        Label("文件", systemImage: "folder")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Palette.text)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 40)
-                            .glass(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.top, 4)
-                .padding(.horizontal, 12)
             }
         }
-        // 不套卡片框：空库时整页只留一行居中的文字
+        // 不套卡片框，也不放任何按钮：空目录只用一句话说清楚
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 40)
     }

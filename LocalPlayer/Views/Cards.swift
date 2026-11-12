@@ -99,6 +99,29 @@ struct WatchedBadge: View {
     }
 }
 
+// MARK: - 右下角进度角标
+
+/// 看了一半的片子：右下角直接给百分比，比一条细线更好判断
+struct ProgressBadge: View {
+    let fraction: Double
+
+    var body: some View {
+        Text("\(Int((min(max(fraction, 0), 1) * 100).rounded()))%")
+            .font(.system(size: 10.5, weight: .semibold))
+            .monospacedDigit()
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .frame(height: 18)
+            .background {
+                Capsule()
+                    .fill(Color.black.opacity(0.58))
+                    .overlay {
+                        Capsule().strokeBorder(Color.white.opacity(0.26), lineWidth: 0.5)
+                    }
+            }
+    }
+}
+
 // MARK: - 网格卡片
 
 struct VideoCard: View {
@@ -123,6 +146,9 @@ struct VideoCard: View {
                 .overlay(alignment: .bottomTrailing) {
                     if watched || active {
                         WatchedBadge(active: active)
+                            .padding(8)
+                    } else if fraction > 0.01 {
+                        ProgressBadge(fraction: fraction)
                             .padding(8)
                     }
                 }
@@ -162,10 +188,15 @@ struct VideoCard: View {
     }
 
     private var metaText: String {
+        var parts: [String] = []
         if let duration, duration > 0 {
-            return "\(Fmt.time(duration)) · \(Fmt.size(item.fileSize))"
+            parts.append(Fmt.time(duration))
         }
-        return Fmt.size(item.fileSize)
+        parts.append(Fmt.size(item.fileSize))
+        if fraction > 0.01, !watched {
+            parts.append("已看 \(Int((min(max(fraction, 0), 1) * 100).rounded()))%")
+        }
+        return parts.joined(separator: " · ")
     }
 }
 
@@ -263,9 +294,14 @@ struct VideoRow: View {
     }
 
     private var metaText: String {
+        var parts: [String] = []
         if let duration, duration > 0 {
-            return "\(Fmt.time(duration)) · \(Fmt.size(item.fileSize))"
+            parts.append(Fmt.time(duration))
         }
-        return Fmt.size(item.fileSize)
+        parts.append(Fmt.size(item.fileSize))
+        if fraction > 0.01, !watched {
+            parts.append("已看 \(Int((min(max(fraction, 0), 1) * 100).rounded()))%")
+        }
+        return parts.joined(separator: " · ")
     }
 }

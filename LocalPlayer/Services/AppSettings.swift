@@ -47,6 +47,18 @@ final class AppSettings: ObservableObject {
 
     private let d = UserDefaults.standard
 
+    /// 只做一次：把早期版本留下的「最近播放 / 降序」纠成名称升序。
+    /// 之后用户在「⋯」菜单里怎么改都按他的来。
+    private static let sortResetKey = "sortResetToNameAscending"
+
+    init() {
+        if !UserDefaults.standard.bool(forKey: Self.sortResetKey) {
+            UserDefaults.standard.set(SortKey.name.rawValue, forKey: Key.sortKey)
+            UserDefaults.standard.set(true, forKey: Key.sortAscending)
+            UserDefaults.standard.set(true, forKey: Self.sortResetKey)
+        }
+    }
+
     private func read<T>(_ key: String, _ fallback: T) -> T {
         (d.object(forKey: key) as? T) ?? fallback
     }
@@ -78,18 +90,18 @@ final class AppSettings: ObservableObject {
         set { write(Key.defaultPlayMode, newValue.rawValue) }
     }
 
-    /// 界面里的排序依据
+    /// 界面里的排序依据。默认按名称，跟文件 App 的习惯一致
     var sortKey: SortKey {
         get {
-            let raw = read(Key.sortKey, SortKey.recent.rawValue)
-            return SortKey(rawValue: raw) ?? .recent
+            let raw = read(Key.sortKey, SortKey.name.rawValue)
+            return SortKey(rawValue: raw) ?? .name
         }
         set { write(Key.sortKey, newValue.rawValue) }
     }
 
-    /// 升序（true）/ 降序（false）
+    /// 升序（true）/ 降序（false）。默认升序
     var sortAscending: Bool {
-        get { read(Key.sortAscending, false) }
+        get { read(Key.sortAscending, true) }
         set { write(Key.sortAscending, newValue) }
     }
 
@@ -130,7 +142,8 @@ final class AppSettings: ObservableObject {
     static func storedOrientation() -> Orientation {
         let raw = UserDefaults.standard.string(forKey: Key.orientationLock) ?? ""
         return Orientation(rawValue: raw) ?? .system
-    }}
+    }
+}
 
 // MARK: - 播放页的初始值
 
