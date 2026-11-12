@@ -69,9 +69,17 @@ struct PhotoPickerSheet: UIViewControllerRepresentable {
         /// 拷到临时目录，并按 suggestedName 取回原名
         private static func stage(_ url: URL, provider: NSItemProvider) -> PickedMovie? {
             var name = provider.suggestedName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            if name.isEmpty { name = url.lastPathComponent }
             if (name as NSString).pathExtension.isEmpty, !url.pathExtension.isEmpty {
-                name += "." + url.pathExtension
+                name = name.isEmpty ? "" : name + "." + url.pathExtension
+            }
+            if name.isEmpty {
+                // 极少数情况下系统不给 suggestedName，退回「视频_时间戳」而不是 UUID 临时名
+                let formatter = DateFormatter()
+                formatter.dateFormat = "yyyyMMdd_HHmmss"
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                let stamp = formatter.string(from: Date())
+                let ext = url.pathExtension.isEmpty ? "mov" : url.pathExtension
+                name = "视频_\(stamp).\(ext)"
             }
 
             let ext = (name as NSString).pathExtension
