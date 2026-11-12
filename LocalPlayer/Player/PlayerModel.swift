@@ -100,6 +100,11 @@ final class PlayerModel: ObservableObject {
     // MARK: - 控制
 
     func play() {
+        // 播到结尾后再点播放：AVPlayer 不会自己回到开头，会停在原地像是没反应。
+        // duration 还没读出来（=0）时不能判断，否则会打断续播。
+        if duration > 1, currentTime >= duration - 0.5 {
+            seek(to: 0)
+        }
         if player.rate == 0 {
             player.playImmediately(atRate: rate)
         } else {
@@ -122,6 +127,13 @@ final class PlayerModel: ObservableObject {
 
     func skip(_ delta: Double) {
         seek(to: currentTime + delta)
+    }
+
+    /// 播完后把时间轴对齐到总时长。周期回调每 0.25 秒一次，
+    /// 停在结尾时 currentTime 可能还差小半秒，进度条和「重播」判断都要靠这个值。
+    func settleAtEnd() {
+        guard duration > 1 else { return }
+        currentTime = duration
     }
 
     func setRate(_ value: Float) {

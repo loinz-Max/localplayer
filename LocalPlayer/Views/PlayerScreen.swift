@@ -16,6 +16,10 @@ struct PlayerScreen: View {
     @State private var mode: PlayMode
     /// 播放列表抽屉开着就去切集，切完仍然开着（与之前一致）
     @State private var queueOpen = false
+    /// 进入播放页时的系统亮度。播放页里的左区上下滑动会直接改系统亮度，
+    /// 退出时必须还回去，否则整个手机停在播放时调的值上。
+    /// 记在这一层：切集只重建 PlayerCore，不会重置用户的亮度。
+    @State private var brightnessBefore: CGFloat?
 
     @Environment(\.dismiss) private var dismiss
 
@@ -46,6 +50,13 @@ struct PlayerScreen: View {
         )
         .id(current.id)
         .preferredColorScheme(.dark)
+        .onAppear {
+            if brightnessBefore == nil { brightnessBefore = ScreenBrightness.current }
+        }
+        .onDisappear {
+            if let value = brightnessBefore { ScreenBrightness.set(value) }
+            brightnessBefore = nil
+        }
     }
 
     private func close() {
@@ -581,6 +592,18 @@ private struct PlayerCore: View {
         .padding(.top, isLandscape ? 12 : 6)
     }
 
+    /// 「播完暂停」停在最后一帧时，播放键必须是重播图标，
+    /// 否则用户按一下没反应会以为卡住了。这是派生状态，拖回中间自动复原。
+    private var reachedEnd: Bool {
+        guard mode == .stopAtEnd, !model.isPlaying, model.duration > 1 else { return false }
+        return model.currentTime >= model.duration - 0.5
+    }
+
+    private var playButtonIcon: String {
+        if reachedEnd { return "arrow.counterclockwise" }
+        return model.isPlaying ? "pause.fill" : "play.fill"
+    }
+
     /// 中部三圆：等大、靠图标区分
     private var centerTransport: some View {
         let size: CGFloat = isLandscape ? 62 : 58
@@ -589,11 +612,15 @@ private struct PlayerCore: View {
                 model.skip(-10)
             }
             circleButton(
-                model.isPlaying ? "pause.fill" : "play.fill",
+                playButtonIcon,
                 size: size,
                 iconSize: isLandscape ? 26 : 24
             ) {
-                model.togglePlay()
+                if reachedEnd {
+                    model.play()   // play() 内部会先回到 0
+                } else {
+                    model.togglePlay()
+                }
             }
             circleButton("goforward.10", size: size, iconSize: isLandscape ? 27 : 25) {
                 model.skip(10)
@@ -986,14 +1013,17 @@ private struct PlayerCore: View {
     }
 
     private func handleEnded() {
-        progress.clear(id: item.id)
-
+        // 不再用 progress.clear：它连「最近播放」里的位置一起删掉了。
+        // 播完的正确语义是「已看」（watched 会顺手清掉半截进度条），
+        // 而条目要继续留在最近播放里。
         switch mode {
         case .loopOne:
+            // 还在循环看这一集，不算看完，也不留结尾进度
             model.seek(to: 0)
             model.play()
 
         case .loopAll:
+            progress.setWatched(item.id, true)
             if let next = nextItem(wrapping: true), next.id != item.id {
                 onAdvance(next)
             } else {
@@ -1002,6 +1032,8 @@ private struct PlayerCore: View {
             }
 
         case .stopAtEnd:
+            progress.setWatched(item.id, true)
+            model.settleAtEnd()
             model.pause()
             showChrome(persistent: true)
         }
