@@ -299,6 +299,8 @@ struct FolderMenu: View {
 struct MoveFolderSheet: View {
     /// 顶部那行小字：单个文件是文件名，批量是「已选 N 个视频」
     let subtitle: String
+    /// 这些文件当前所在的目录，用来把那一条置灰
+    let currentFolder: String
     let choices: [FolderChoice]
     var onPick: (String) -> Void
 
@@ -356,7 +358,7 @@ struct MoveFolderSheet: View {
     }
 
     private func row(_ choice: FolderChoice) -> some View {
-        let isCurrent = choice.path == item.folder
+        let isCurrent = choice.path == currentFolder
         return Button {
             onPick(choice.path)
             dismiss()

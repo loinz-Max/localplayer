@@ -254,13 +254,18 @@ struct LibraryView: View {
             Text("文件夹里的 \(library.itemsInside(path).count) 个视频会一起从本机移除，这个操作不能撤销。")
         }
         .sheet(item: $movingItem) { item in
-            MoveFolderSheet(subtitle: item.name, choices: library.folderChoices) { path in
+            MoveFolderSheet(
+                subtitle: item.name,
+                currentFolder: item.folder,
+                choices: library.folderChoices
+            ) { path in
                 moveItem(item, to: path)
             }
         }
         .sheet(isPresented: $batchMoving) {
             MoveFolderSheet(
                 subtitle: "已选 \(selection.count) 个视频",
+                currentFolder: library.currentFolder ?? "",
                 choices: library.folderChoices
             ) { path in
                 batchMoving = false
