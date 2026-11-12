@@ -198,9 +198,6 @@ struct VideoCard: View {
             parts.append(Fmt.time(duration))
         }
         parts.append(Fmt.size(item.fileSize))
-        if fraction > 0.01, !watched {
-            parts.append("已看 \(Int((min(max(fraction, 0), 1) * 100).rounded()))%")
-        }
         return parts.joined(separator: " · ")
     }
 }

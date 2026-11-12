@@ -31,6 +31,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var cacheCleared = false
+    /// 手动维护导航栈，只为了截图时能直接落到某个二级页
+    @State private var path: [SettingsPage] = []
 
     /// 长按时的倍速档位
     private let rates: [Double] = [1.5, 2, 2.5, 3]
@@ -38,7 +40,7 @@ struct SettingsView: View {
     private let autoHideOptions: [Double] = [2, 4, 6]
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ZStack {
                 Palette.background.ignoresSafeArea()
 
@@ -62,6 +64,15 @@ struct SettingsView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            #if DEBUG
+            // 截图用：-settings playback|interface|storage|about 直接进二级页
+            if let raw = DebugSeed.argument(after: "-settings"),
+               let page = SettingsPage(rawValue: raw) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { path = [page] }
+            }
+            #endif
+        }
     }
 
     // MARK: - 一级菜单
@@ -191,14 +202,31 @@ struct SettingsView: View {
                         .foregroundStyle(Palette.tertiaryText)
                 }
                 Spacer()
-                Picker("", selection: rateBinding) {
+                // 不用 Picker(.menu)：系统菜单会在数值旁画一对上下箭头，这里只要一个可点的数值胶囊
+                Menu {
                     ForEach(rates, id: \.self) { rate in
-                        Text(rateLabel(rate)).tag(rate)
+                        Button {
+                            settings.longPressRate = rate
+                        } label: {
+                            if rate == settings.longPressRate {
+                                Label(rateLabel(rate), systemImage: "checkmark")
+                            } else {
+                                Text(rateLabel(rate))
+                            }
+                        }
                     }
+                } label: {
+                    Text(rateLabel(settings.longPressRate))
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Palette.text)
+                        .monospacedDigit()
+                        .padding(.horizontal, 13)
+                        .frame(height: 30)
+                        .background {
+                            Capsule(style: .continuous)
+                                .fill(Color.white.opacity(0.10))
+                        }
                 }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .tint(Palette.text)
             }
 
             divider
@@ -305,22 +333,6 @@ struct SettingsView: View {
                     selected: AppSettings.Orientation.allCases.firstIndex(of: settings.orientationLock) ?? 0
                 ) { index in
                     settings.orientationLock = AppSettings.Orientation.allCases[index]
-                }
-            }
-            .padding(.vertical, 4)
-
-            divider
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("资料库排版")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Palette.text)
-
-                SettingsSegment(
-                    titles: AppSettings.LibraryView.allCases.map { $0.title },
-                    selected: AppSettings.LibraryView.allCases.firstIndex(of: settings.libraryView) ?? 0
-                ) { index in
-                    settings.libraryView = AppSettings.LibraryView.allCases[index]
                 }
             }
             .padding(.vertical, 4)
@@ -443,21 +455,13 @@ struct SettingsView: View {
         )
     }
 
-    private var rateBinding: Binding<Double> {
-        Binding(
-            get: { settings.longPressRate },
-            set: { settings.longPressRate = $0 }
-        )
-    }
-
     private func rateLabel(_ value: Double) -> String {
         "\(String(format: "%g", value))×"
     }
 
+    /// 只显示版本号，不带括号里的构建号
     private var appVersion: String {
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
-        return "\(version) (\(build))"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
     }
 }
 

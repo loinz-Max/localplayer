@@ -108,6 +108,10 @@ jobs:
           # 横屏播放：这才是实际看片时的形态
           snap 06-player-landscape "-screen player -keepChrome 1 -landscape 1" 4
           snap 05-settings "-screen settings"
+          # 设置二级页：长按倍速胶囊 / 播放界面 / 关于的版本号
+          snap 17-settings-playback "-screen settings -settings playback" 4
+          snap 18-settings-interface "-screen settings -settings interface" 4
+          snap 19-settings-about "-screen settings -settings about" 4
           # 新增界面：文件夹长按菜单、移到文件夹弹窗、倍速面板、播放列表抽屉
           snap 07-folder-menu "-screen foldermenu -seedDemo 1" 5
           snap 08-move-sheet "-screen move -seedDemo 1" 5

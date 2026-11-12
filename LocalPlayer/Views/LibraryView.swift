@@ -83,6 +83,8 @@ struct LibraryView: View {
     @State private var toastToken = 0
 
     private let sidePadding: CGFloat = 16
+    /// 长按浮起时的放大比例：能看出「被拎起来」，又不至于压到相邻卡片
+    private static let liftScale: CGFloat = 1.045
     private let columnSpacing: CGFloat = 12
     private let rowSpacing: CGFloat = 18
 
@@ -168,8 +170,9 @@ struct LibraryView: View {
             }
             .coordinateSpace(name: "root")
             .animation(.easeOut(duration: 0.16), value: popup)
-            .animation(.easeOut(duration: 0.16), value: target)
-            .animation(.easeOut(duration: 0.16), value: folderTarget)
+            // 长按浮层用带一点回弹的弹簧：卡片「被拎起来」再落定，比纯淡入更有实感
+            .animation(.spring(response: 0.30, dampingFraction: 0.86), value: target)
+            .animation(.spring(response: 0.30, dampingFraction: 0.86), value: folderTarget)
         }
         // 播放页走同层覆盖而不是 fullScreenCover：
         // 模态控制器会绕开 AppDelegate 的方向掩码，导致「只有播放页能转」。
@@ -902,6 +905,7 @@ struct LibraryView: View {
     }
 
     /// 被长按的卡片浮在遮罩之上，保持清晰
+    /// 被长按的卡片浮在遮罩之上，保持清晰；顺带轻微放大，让「浮起来」这件事看得出来
     private func floatingCard(_ target: CardTarget) -> some View {
         VideoCard(
             item: target.item,
@@ -910,9 +914,10 @@ struct LibraryView: View {
             active: true
         )
         .frame(width: target.rect.width, alignment: .top)
+        .scaleEffect(Self.liftScale)
         .position(x: target.rect.midX, y: target.rect.midY)
         .allowsHitTesting(false)
-        .transition(.opacity)
+        .transition(.scale(scale: 0.97).combined(with: .opacity))
     }
 
     private func floatingFolder(_ target: FolderTarget) -> some View {
@@ -921,9 +926,10 @@ struct LibraryView: View {
             count: count(in: target.path)
         )
         .frame(width: target.rect.width, alignment: .top)
+        .scaleEffect(Self.liftScale)
         .position(x: target.rect.midX, y: target.rect.midY)
         .allowsHitTesting(false)
-        .transition(.opacity)
+        .transition(.scale(scale: 0.97).combined(with: .opacity))
     }
 
     private func cardMenu(_ target: CardTarget, screen: CGSize) -> some View {
@@ -992,7 +998,7 @@ struct LibraryView: View {
         folderTarget = nil
         menuGuard = Date()
         let rect = cardFrames[item.id] ?? .zero
-        withAnimation(.easeOut(duration: 0.16)) {
+        withAnimation(.spring(response: 0.30, dampingFraction: 0.86)) {
             target = CardTarget(item: item, rect: rect)
         }
     }
@@ -1002,17 +1008,17 @@ struct LibraryView: View {
         target = nil
         menuGuard = Date()
         let rect = folderFrames[path] ?? .zero
-        withAnimation(.easeOut(duration: 0.16)) {
+        withAnimation(.spring(response: 0.30, dampingFraction: 0.86)) {
             folderTarget = FolderTarget(path: path, rect: rect)
         }
     }
 
     private func closeCardMenu() {
-        withAnimation(.easeOut(duration: 0.16)) { target = nil }
+        withAnimation(.easeOut(duration: 0.14)) { target = nil }
     }
 
     private func closeMenus() {
-        withAnimation(.easeOut(duration: 0.16)) {
+        withAnimation(.easeOut(duration: 0.14)) {
             target = nil
             folderTarget = nil
         }
