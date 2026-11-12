@@ -7,7 +7,6 @@ final class ThumbnailLoader {
 
     private let cache = NSCache<NSString, UIImage>()
     private let durationCache = NSCache<NSString, NSNumber>()
-    private let queue = DispatchQueue(label: "localplayer.thumbnails", qos: .utility, attributes: .concurrent)
     private var inFlight = Set<String>()
     private var pending: [String: [(UIImage?) -> Void]] = [:]
     private let lock = NSLock()
@@ -49,21 +48,9 @@ final class ThumbnailLoader {
             return
         }
 
-        queue.async { [weak self] in
+        Task.detached(priority: .utility) { [weak self] in
+            let image = await Self.makeImage(for: item, size: size)
             guard let self else { return }
-            let asset = AVURLAsset(url: item.url, options: [AVURLAssetPreferPreciseDurationAndTimingKey: false])
-            let generator = AVAssetImageGenerator(asset: asset)
-            generator.appliesPreferredTrackTransform = true
-            generator.maximumSize = size
-            generator.requestedTimeToleranceBefore = CMTime(seconds: 3, preferredTimescale: 600)
-            generator.requestedTimeToleranceAfter = CMTime(seconds: 3, preferredTimescale: 600)
-
-            var image: UIImage?
-            if let cg = try? generator.copyCGImage(at: CMTime(seconds: 5, preferredTimescale: 600), actualTime: nil) {
-                image = UIImage(cgImage: cg)
-            } else if let cg = try? generator.copyCGImage(at: .zero, actualTime: nil) {
-                image = UIImage(cgImage: cg)
-            }
 
             self.lock.lock()
             self.inFlight.remove(item.id)
@@ -73,11 +60,42 @@ final class ThumbnailLoader {
             if let image {
                 self.cache.setObject(image, forKey: item.id as NSString)
             }
-            DispatchQueue.main.async {
+            await MainActor.run {
                 completion(image)
                 waiters.forEach { $0(image) }
             }
         }
+    }
+
+    /// 取帧点：时长的 12%（不早于 3 秒），避开片头的台标 / 广告 / 黑场。
+    /// 失败再依次退到 3 秒与首帧，保证任何能解码的文件都有图。
+    private static func makeImage(for item: VideoItem, size: CGSize) async -> UIImage? {
+        let asset = AVURLAsset(url: item.url, options: [AVURLAssetPreferPreciseDurationAndTimingKey: false])
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = size
+        generator.requestedTimeToleranceBefore = CMTime(seconds: 2, preferredTimescale: 600)
+        generator.requestedTimeToleranceAfter = CMTime(seconds: 2, preferredTimescale: 600)
+
+        var seconds: Double = 0
+        if let duration = try? await asset.load(.duration) {
+            seconds = duration.seconds
+        }
+
+        var candidates: [Double] = []
+        if seconds.isFinite, seconds > 6 {
+            candidates.append(min(max(seconds * 0.12, 3), seconds - 1))
+        }
+        candidates.append(3)
+        candidates.append(0)
+
+        for seconds in candidates {
+            let time = CMTime(seconds: max(0, seconds), preferredTimescale: 600)
+            if let frame = try? await generator.image(at: time) {
+                return UIImage(cgImage: frame.image)
+            }
+        }
+        return nil
     }
 
     func clear() {

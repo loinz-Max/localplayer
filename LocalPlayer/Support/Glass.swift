@@ -36,6 +36,18 @@ struct GlassStyle {
         shadowOpacity: 0.45
     )
 
+    /// 播放页：压在视频画面上的控件。control 是白色染色，压在亮画面上等于加亮，
+    /// 白图标直接糊掉；这里换成暗色染色，图标才有对比度。
+    static let stage = GlassStyle(
+        top: Color.black.opacity(0.38),
+        bottom: Color.black.opacity(0.52),
+        strokeTop: Color.white.opacity(0.22),
+        strokeBottom: Color.white.opacity(0.05),
+        shadowRadius: 12,
+        shadowY: 4,
+        shadowOpacity: 0.35
+    )
+
     /// 播放条上的浅色底（比 control 再淡一点）
     static let subtle = GlassStyle(
         top: Color.white.opacity(0.10),

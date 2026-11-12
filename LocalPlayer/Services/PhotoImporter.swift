@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Photos
 import PhotosUI
 import CoreTransferable
 import UniformTypeIdentifiers
@@ -40,11 +41,10 @@ enum PhotoImporter {
         var saved = 0
         for pickerItem in items {
             guard let movie = try? await pickerItem.loadTransferable(type: MovieFile.self) else { continue }
-            let base = nextName(in: target)
-            let destination = FileManager.default.uniqueURL(
-                in: target,
-                preferredName: "\(base).\(movie.ext)"
-            )
+            // 先按相册里的原文件名存（IMG_0001.MOV），拿不到才用「日期_流水号」
+            var name = await originalName(for: pickerItem) ?? nextName(in: target)
+            if (name as NSString).pathExtension.isEmpty { name += ".\(movie.ext)" }
+            let destination = FileManager.default.uniqueURL(in: target, preferredName: name)
             do {
                 try FileManager.default.moveItem(at: movie.url, to: destination)
                 saved += 1
@@ -56,6 +56,20 @@ enum PhotoImporter {
             await MainActor.run { library.reload() }
         }
         return saved
+    }
+
+    /// 相册里这条视频的原始文件名。取不到（没给相册权限、或不是来自相册）返回 nil。
+    private static func originalName(for item: PhotosPickerItem) async -> String? {
+        guard let identifier = item.itemIdentifier,
+              let asset = PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil).firstObject
+        else { return nil }
+
+        let resources = PHAssetResource.assetResources(for: asset)
+        let resource = resources.first { $0.type == .video || $0.type == .fullSizeVideo } ?? resources.first
+        guard let raw = resource?.originalFilename.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty
+        else { return nil }
+        return raw
     }
 
     private static func nextName(in directory: URL) -> String {

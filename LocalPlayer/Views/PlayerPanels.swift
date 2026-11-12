@@ -103,8 +103,15 @@ struct QueuePanel: View {
             onSelect(item)
         } label: {
             HStack(spacing: 10) {
-                ThumbnailView(item: item, cornerRadius: 6)
-                    .frame(width: isLandscape ? 60 : 80)
+                // 尺寸必须宽高都给，否则缩略图按自身理想尺寸撑开、盖住右边文字
+                ThumbnailView(
+                    item: item,
+                    cornerRadius: 6,
+                    size: CGSize(
+                        width: isLandscape ? 60 : 80,
+                        height: isLandscape ? 34 : 45
+                    )
+                )
                     .overlay {
                         if isCurrent {
                             RoundedRectangle(cornerRadius: 6, style: .continuous)

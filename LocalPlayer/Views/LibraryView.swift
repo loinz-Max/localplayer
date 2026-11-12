@@ -556,7 +556,7 @@ struct LibraryView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Palette.text)
 
-                Text("从相册或「文件」App 导入\n视频只存在本机，不联网、不上传")
+                Text("点右上角的导入按钮\n视频只存在本机，不联网、不上传")
                     .font(.system(size: 12.5))
                     .multilineTextAlignment(.center)
                     .lineSpacing(3)
@@ -588,33 +588,35 @@ struct LibraryView: View {
                 }
             }
 
-            HStack(spacing: 8) {
-                Button {
-                    showPhotoPicker = true
-                } label: {
-                    Label("相册", systemImage: "photo.on.rectangle")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 40)
-                        .background(Palette.accent, in: Capsule())
-                }
-                .buttonStyle(.plain)
+            if !library.allItems.isEmpty {
+                HStack(spacing: 8) {
+                    Button {
+                        showPhotoPicker = true
+                    } label: {
+                        Label("相册", systemImage: "photo.on.rectangle")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 40)
+                            .background(Palette.accent, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
 
-                Button {
-                    showFileImporter = true
-                } label: {
-                    Label("文件", systemImage: "folder")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Palette.text)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 40)
-                        .glass(Capsule())
+                    Button {
+                        showFileImporter = true
+                    } label: {
+                        Label("文件", systemImage: "folder")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Palette.text)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 40)
+                            .glass(Capsule())
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+                .padding(.top, 4)
+                .padding(.horizontal, 12)
             }
-            .padding(.top, 4)
-            .padding(.horizontal, 12)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 40)

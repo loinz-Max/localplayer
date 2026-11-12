@@ -171,6 +171,10 @@ private struct PlayerCore: View {
 
             hudLayer
 
+            if boosting {
+                boostHint
+            }
+
             if touchLocked {
                 lockLayer
             }
@@ -243,10 +247,8 @@ private struct PlayerCore: View {
                 showChrome(persistent: false)
                 if value.location.x < size.width * 0.35 {
                     model.skip(-10)
-                    flashHUD(HUD(icon: "gobackward.10", text: "-10 秒", progress: nil), duration: 0.8)
                 } else if value.location.x > size.width * 0.65 {
                     model.skip(10)
-                    flashHUD(HUD(icon: "goforward.10", text: "+10 秒", progress: nil), duration: 0.8)
                 } else {
                     model.togglePlay()
                 }
@@ -335,10 +337,10 @@ private struct PlayerCore: View {
 
     /// 长按 = 2× 快进（锁定时不响应）
     private func startLongPress() {
+        // 暂停状态下不进 2×，避免「按了半天没反应／画面自己动起来」两种误解都不想要
         guard !touchLocked, !queueOpen, model.isPlaying, !speedOpen else { return }
-        boosting = true
+        withAnimation(.easeOut(duration: 0.12)) { boosting = true }
         model.setRate(2)
-        flashHUD(HUD(icon: "forward.fill", text: "2× 快进", progress: nil), duration: 6)
     }
 
     private func endLongPress() {
@@ -347,9 +349,8 @@ private struct PlayerCore: View {
 
     private func endBoost() {
         guard boosting else { return }
-        boosting = false
+        withAnimation(.easeOut(duration: 0.12)) { boosting = false }
         model.setRate(Float(rate))
-        hud = nil
     }
 
     private func handleTap() {
@@ -519,7 +520,8 @@ private struct PlayerCore: View {
                 systemName: "xmark",
                 size: 38,
                 iconSize: 15,
-                weight: .semibold
+                weight: .semibold,
+                style: .stage
             ) { onClose() }
 
             Spacer(minLength: 0)
@@ -528,7 +530,8 @@ private struct PlayerCore: View {
                 systemName: "list.bullet",
                 size: 38,
                 iconSize: 16,
-                weight: .medium
+                weight: .medium,
+                style: .stage
             ) { openQueue() }
         }
         .padding(.horizontal, 20)
@@ -541,7 +544,6 @@ private struct PlayerCore: View {
         return HStack(spacing: isLandscape ? 30 : 26) {
             circleButton("gobackward.10", size: size, iconSize: isLandscape ? 27 : 25) {
                 model.skip(-10)
-                flashHUD(HUD(icon: "gobackward.10", text: "-10 秒", progress: nil), duration: 0.8)
             }
             circleButton(
                 model.isPlaying ? "pause.fill" : "play.fill",
@@ -552,7 +554,6 @@ private struct PlayerCore: View {
             }
             circleButton("goforward.10", size: size, iconSize: isLandscape ? 27 : 25) {
                 model.skip(10)
-                flashHUD(HUD(icon: "goforward.10", text: "+10 秒", progress: nil), duration: 0.8)
             }
         }
     }
@@ -571,12 +572,15 @@ private struct PlayerCore: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .glass(Circle(), style: .control)
+        .glass(Circle(), style: .stage)
     }
 
     private var bottomBar: some View {
         VStack(alignment: .trailing, spacing: 12) {
-            speedButton
+            // 面板展开时不再显示倍速键，避免两个入口同屏
+            if !speedOpen {
+                speedButton
+            }
             progressCapsule
         }
         .padding(.horizontal, isLandscape ? 16 : 20)
@@ -595,7 +599,7 @@ private struct PlayerCore: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .glass(Circle(), style: .control)
+        .glass(Circle(), style: .stage)
     }
 
     private var progressCapsule: some View {
@@ -616,7 +620,7 @@ private struct PlayerCore: View {
         }
         .padding(.horizontal, 15)
         .frame(height: 36)
-        .glass(Capsule(), style: .subtle)
+        .glass(Capsule(), style: .stage)
     }
 
     private var rateText: String {
@@ -724,6 +728,23 @@ private struct PlayerCore: View {
                 .padding(.vertical, 10)
                 .glass(Capsule())
                 .padding(.bottom, 120)
+        }
+        .allowsHitTesting(false)
+        .transition(.opacity)
+    }
+
+    /// 长按 2× 的提示：水平居中、顶栏下方一点，做小，绝不压中部按钮
+    private var boostHint: some View {
+        VStack(spacing: 0) {
+            Text("2× 快进")
+                .font(.system(size: 12, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+                .padding(.horizontal, 11)
+                .padding(.vertical, 6)
+                .glass(Capsule(), style: .stage)
+                .padding(.top, isLandscape ? 54 : 60)
+            Spacer(minLength: 0)
         }
         .allowsHitTesting(false)
         .transition(.opacity)

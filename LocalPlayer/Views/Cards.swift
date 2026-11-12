@@ -5,29 +5,51 @@ import SwiftUI
 struct ThumbnailView: View {
     let item: VideoItem
     var cornerRadius: CGFloat = 12
+    /// 给了尺寸就严格按这个尺寸裁切（抽屉里的小图）；不给则铺满父级并保持 16:9
+    var size: CGSize? = nil
 
     @State private var image: UIImage?
 
     var body: some View {
         ZStack {
-            Rectangle().fill(Color(white: 0.09))
+            Rectangle().fill(Color(white: 0.07))
             if let image {
+                // 用 fit 不用 fill：竖屏 / 4:3 片源只补边，不把两侧画面裁掉
                 Image(uiImage: image)
                     .resizable()
-                    .scaledToFill()
+                    .scaledToFit()
             } else {
                 Image(systemName: item.systemPlayable ? "film" : "exclamationmark.triangle")
                     .font(.system(size: 20, weight: .light))
                     .foregroundStyle(Palette.tertiaryText)
             }
         }
-        .aspectRatio(16.0 / 9.0, contentMode: .fit)
-        .clipped()
+        .modifier(ThumbnailFrame(size: size))
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .onAppear {
-            ThumbnailLoader.shared.load(for: item, size: CGSize(width: 480, height: 270)) { loaded in
+            // 统一按 640×360 生成一次，网格和抽屉共用同一份缓存
+            ThumbnailLoader.shared.load(for: item, size: CGSize(width: 640, height: 360)) { loaded in
                 image = loaded
             }
+        }
+    }
+}
+
+/// 尺寸约束：有明确尺寸就锁定，没有则撑满父级、按 16:9 收口。
+/// clipped() 必须在 clipShape 之前，否则图片会跑出圆角矩形（穿模）。
+private struct ThumbnailFrame: ViewModifier {
+    let size: CGSize?
+
+    func body(content: Content) -> some View {
+        if let size {
+            content
+                .frame(width: size.width, height: size.height)
+                .clipped()
+        } else {
+            content
+                .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                .clipped()
         }
     }
 }
