@@ -926,6 +926,7 @@ private struct PlayerCore: View {
                 switch which {
                 case "speed": speedOpen = true
                 case "lock": touchLocked = true
+                case "level": level = LevelHUD(icon: "sun.max.fill", value: 0.62)
                 default: queueOpen = true
                 }
             }

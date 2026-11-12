@@ -27,8 +27,8 @@ struct GlassStyle {
     static let control = GlassStyle(
         tintTop: Color.white.opacity(0.17),
         tintBottom: Color.white.opacity(0.07),
-        sheen: 0.24,
-        rimTop: Color.white.opacity(0.62),
+        sheen: 0.30,
+        rimTop: Color.white.opacity(0.70),
         rimBottom: Color.white.opacity(0.12),
         depth: 0.10,
         shadowRadius: 14,
@@ -40,8 +40,8 @@ struct GlassStyle {
     static let panel = GlassStyle(
         tintTop: Color.black.opacity(0.30),
         tintBottom: Color.black.opacity(0.44),
-        sheen: 0.16,
-        rimTop: Color.white.opacity(0.52),
+        sheen: 0.24,
+        rimTop: Color.white.opacity(0.62),
         rimBottom: Color.white.opacity(0.08),
         depth: 0.22,
         shadowRadius: 30,
@@ -54,8 +54,8 @@ struct GlassStyle {
     static let stage = GlassStyle(
         tintTop: Color.black.opacity(0.24),
         tintBottom: Color.black.opacity(0.40),
-        sheen: 0.20,
-        rimTop: Color.white.opacity(0.66),
+        sheen: 0.26,
+        rimTop: Color.white.opacity(0.72),
         rimBottom: Color.white.opacity(0.10),
         depth: 0.20,
         shadowRadius: 16,
@@ -67,8 +67,8 @@ struct GlassStyle {
     static let subtle = GlassStyle(
         tintTop: Color.white.opacity(0.13),
         tintBottom: Color.white.opacity(0.05),
-        sheen: 0.18,
-        rimTop: Color.white.opacity(0.50),
+        sheen: 0.22,
+        rimTop: Color.white.opacity(0.58),
         rimBottom: Color.white.opacity(0.08),
         depth: 0.08,
         shadowRadius: 10,
@@ -123,6 +123,12 @@ private struct GlassFill<S: InsettableShape>: View {
                     ),
                     lineWidth: 1
                 )
+            }
+            .overlay {
+                // 内圈细高光：模拟玻璃的厚度
+                shape
+                    .inset(by: 1.2)
+                    .strokeBorder(Color.white.opacity(style.sheen * 0.32), lineWidth: 0.6)
             }
             .compositingGroup()
             .shadow(

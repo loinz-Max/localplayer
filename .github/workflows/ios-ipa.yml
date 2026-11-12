@@ -97,7 +97,7 @@ jobs:
           # 空状态：先不塞示例数据
           snap 01-empty "-screen empty"
           # 首页：首次启动时生成 4 段示例视频（含缩略图、外挂字幕）
-          snap 02-home "-screen home -seedDemo 1"
+          snap 02-home "-screen home -seedDemo 1" 9
           # 进到「示例视频」文件夹，看真实的缩略图网格
           snap 03-folder "-screen folder"
           # 播放页：-keepChrome 把控制栏钉住，否则 4 秒后自动隐藏拍不到
@@ -110,6 +110,7 @@ jobs:
           snap 08-move-sheet "-screen move -seedDemo 1" 5
           snap 09-player-speed "-screen player -panel speed -keepChrome 1" 5
           snap 10-player-queue "-screen player -panel queue -keepChrome 1" 5
+          snap 11-level "-screen player -panel level -keepChrome 1" 5
 
           ls -lh shots
 
