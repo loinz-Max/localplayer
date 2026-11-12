@@ -164,6 +164,17 @@ final class LibraryStore: ObservableObject {
         reload()
     }
 
+    /// 批量删除：一次 reload，避免多选时反复扫盘
+    @discardableResult
+    func deleteMany(ids: Set<String>) -> Int {
+        var removed = 0
+        for item in allItems where ids.contains(item.id) {
+            if (try? FileManager.default.removeItem(at: item.url)) != nil { removed += 1 }
+        }
+        if removed > 0 { reload() }
+        return removed
+    }
+
     /// 真的改磁盘上的文件名（扩展名保留）。成功返回重命名后的条目，失败返回 nil。
     func rename(_ item: VideoItem, to newBase: String) -> VideoItem? {
         let trimmed = newBase.trimmingCharacters(in: .whitespacesAndNewlines)

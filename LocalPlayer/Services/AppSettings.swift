@@ -7,7 +7,7 @@ final class AppSettings: ObservableObject {
     /// 用下面的 static 读取入口，不要再自己拼字符串键。
     enum Key {
         static let resumePlayback = "resumePlayback"
-        static let defaultRate = "defaultRate"
+        static let longPressRate = "longPressRate"
         static let defaultPlayMode = "defaultPlayMode"
         static let sortKey = "sortKey"
         static let sortAscending = "sortAscending"
@@ -15,6 +15,20 @@ final class AppSettings: ObservableObject {
         static let defaultGravity = "defaultGravity"
         static let keepAwake = "keepAwake"
         static let orientationLock = "orientationLock"
+        static let libraryView = "libraryView"
+    }
+
+    enum LibraryView: String, CaseIterable, Identifiable {
+        case grid, list
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .grid: return "网格"
+            case .list: return "列表"
+            }
+        }
     }
 
     enum Orientation: String, CaseIterable, Identifiable {
@@ -49,9 +63,10 @@ final class AppSettings: ObservableObject {
     }
 
     /// 默认倍速。进入播放页时的起始值，播放页抽屉里可以临时改
-    var defaultRate: Double {
-        get { read(Key.defaultRate, 1.0) }
-        set { write(Key.defaultRate, newValue) }
+    /// 长按画面时的倍速（播放页里按住就按这个速度跑）
+    var longPressRate: Double {
+        get { read(Key.longPressRate, 2.0) }
+        set { write(Key.longPressRate, newValue) }
     }
 
     /// 默认播放模式：播完暂停 / 单集循环 / 列表循环
@@ -96,6 +111,12 @@ final class AppSettings: ObservableObject {
         set { write(Key.keepAwake, newValue) }
     }
 
+    /// 资料库排版：网格 / 列表
+    var libraryView: LibraryView {
+        get { LibraryView(rawValue: read(Key.libraryView, LibraryView.grid.rawValue)) ?? .grid }
+        set { write(Key.libraryView, newValue.rawValue) }
+    }
+
     /// 方向锁定：跟随系统 / 竖屏 / 横屏
     var orientationLock: Orientation {
         get { Orientation(rawValue: read(Key.orientationLock, Orientation.system.rawValue)) ?? .system }
@@ -116,8 +137,8 @@ final class AppSettings: ObservableObject {
 extension AppSettings {
     /// 播放页挂在 fullScreenCover 里，init 阶段拿不到 EnvironmentObject，
     /// 所以用这两个静态入口读当前默认值；键名仍然只在 Key 里定义一次。
-    static func storedRate() -> Double {
-        (UserDefaults.standard.object(forKey: Key.defaultRate) as? Double) ?? 1.0
+    static func storedLongPressRate() -> Double {
+        (UserDefaults.standard.object(forKey: Key.longPressRate) as? Double) ?? 2.0
     }
 
     static func storedPlayMode() -> PlayMode {

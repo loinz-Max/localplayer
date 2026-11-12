@@ -21,7 +21,7 @@ struct PlayerScreen: View {
         self.queue = queue
         _current = State(initialValue: item)
         // 起始倍速/模式从设置里取；键名与读写都收在 AppSettings 里
-        _rate = State(initialValue: AppSettings.storedRate())
+        _rate = State(initialValue: 1.0)
         _mode = State(initialValue: AppSettings.storedPlayMode())
     }
 
@@ -376,7 +376,7 @@ private struct PlayerCore: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
             guard pressToken == token, !boosting else { return }
             withAnimation(.easeOut(duration: 0.12)) { boosting = true }
-            model.setRate(2)
+            model.setRate(Float(boostRate))
         }
     }
 
@@ -687,6 +687,11 @@ private struct PlayerCore: View {
         .glass(Capsule(), style: .stage)
     }
 
+    /// 长按倍速跟着设置走（设置里可改 1.5/2/2.5/3）
+    private var boostRate: Double { AppSettings.storedLongPressRate() }
+
+    private var boostLabel: String { "\(String(format: "%g", boostRate))× 快进" }
+
     private var rateText: String {
         rate == 1 ? "1×" : "\(String(format: "%g", rate))×"
     }
@@ -826,7 +831,7 @@ private struct PlayerCore: View {
     /// 长按 2× 的提示：水平居中、顶栏下方一点，做小，绝不压中部按钮
     private var boostHint: some View {
         VStack(spacing: 0) {
-            Text("2× 快进")
+            Text(boostLabel)
                 .font(.system(size: 12, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(.white)

@@ -117,38 +117,56 @@ struct ImportMenu: View {
 // MARK: - 「…」菜单
 
 struct MoreMenu: View {
+    let viewMode: AppSettings.LibraryView
     let sortKey: SortKey
     let ascending: Bool
-    var onNewFolder: () -> Void
-    var onSort: (SortKey) -> Void
-    var onToggleOrder: () -> Void
-    var onRefresh: () -> Void
+    var onSelectAll: () -> Void
+    var onCreateFolder: () -> Void
+    var onViewMode: (AppSettings.LibraryView) -> Void
+    var onNameSort: () -> Void
+    var onDateSort: () -> Void
+
+    static let width: CGFloat = 210
 
     var body: some View {
-        GlassMenuContainer(width: 200) {
-            MenuRowButton(title: "新建文件夹", icon: "folder.badge.plus", action: onNewFolder)
-
-            MenuSeparator()
-
-            ForEach(SortKey.allCases) { key in
-                if sortKey == key {
-                    MenuRowButton(title: key.title, icon: "checkmark", action: { onSort(key) })
-                } else {
-                    MenuRowButton(title: key.title, icon: nil, action: { onSort(key) })
-                }
-            }
+        GlassMenuContainer(width: Self.width) {
+            MenuRowButton(title: "全选", icon: "checkmark.circle", action: onSelectAll)
+            MenuRowButton(title: "创建文件夹", icon: "folder.badge.plus", action: onCreateFolder)
 
             MenuSeparator()
 
             MenuRowButton(
-                title: ascending ? "降序排列" : "升序排列",
-                icon: nil,
-                action: onToggleOrder
+                title: "网格",
+                icon: viewMode == .grid ? "checkmark" : nil,
+                action: { onViewMode(.grid) }
             )
-            MenuRowButton(title: "刷新缩略图", icon: nil, action: onRefresh)
+            MenuRowButton(
+                title: "列表",
+                icon: viewMode == .list ? "checkmark" : nil,
+                action: { onViewMode(.list) }
+            )
+
+            MenuSeparator()
+
+            // 名称：已经在按名称排序时点一下就是升/降切换
+            MenuRowButton(
+                title: nameTitle,
+                icon: sortKey == .name ? "checkmark" : nil,
+                action: onNameSort
+            )
+            MenuRowButton(
+                title: "日期",
+                icon: sortKey == .added ? "checkmark" : nil,
+                action: onDateSort
+            )
 
             Color.clear.frame(height: 4)
         }
+    }
+
+    private var nameTitle: String {
+        guard sortKey == .name else { return "名称" }
+        return ascending ? "名称 ↑" : "名称 ↓"
     }
 }
 
@@ -279,7 +297,8 @@ struct FolderMenu: View {
 // MARK: - 选择目标文件夹
 
 struct MoveFolderSheet: View {
-    let item: VideoItem
+    /// 顶部那行小字：单个文件是文件名，批量是「已选 N 个视频」
+    let subtitle: String
     let choices: [FolderChoice]
     var onPick: (String) -> Void
 
@@ -302,7 +321,7 @@ struct MoveFolderSheet: View {
                 .padding(.horizontal, 16)
                 .frame(height: 54)
 
-                Text(item.name)
+                Text(subtitle)
                     .font(.system(size: 12.5))
                     .foregroundStyle(Palette.tertiaryText)
                     .lineLimit(1)

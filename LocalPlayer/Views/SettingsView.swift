@@ -7,7 +7,8 @@ struct SettingsView: View {
 
     @State private var cacheCleared = false
 
-    private let rates: [Double] = [0.5, 1, 1.25, 1.5, 2]
+    /// 长按时的倍速档位
+    private let rates: [Double] = [1.5, 2, 2.5, 3]
     private let gravityTitles = ["适应", "填充", "拉伸"]
     private let autoHideOptions: [Double] = [2, 4, 6]
 
@@ -57,9 +58,14 @@ struct SettingsView: View {
     private var playbackSection: some View {
         card(title: "播放") {
             row {
-                Text("默认倍速")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Palette.text)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("长按倍速")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Palette.text)
+                    Text("按住画面时按这个速度播放，松手复原")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Palette.tertiaryText)
+                }
                 Spacer()
                 Picker("", selection: rateBinding) {
                     ForEach(rates, id: \.self) { rate in
@@ -297,13 +303,13 @@ struct SettingsView: View {
 
     private var rateBinding: Binding<Double> {
         Binding(
-            get: { settings.defaultRate },
-            set: { settings.defaultRate = $0 }
+            get: { settings.longPressRate },
+            set: { settings.longPressRate = $0 }
         )
     }
 
     private func rateLabel(_ value: Double) -> String {
-        value == 1 ? "1×（正常）" : "\(String(format: "%g", value))×"
+        "\(String(format: "%g", value))×"
     }
 
     private var appVersion: String {

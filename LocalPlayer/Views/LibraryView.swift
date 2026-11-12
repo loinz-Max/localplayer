@@ -44,9 +44,13 @@ struct LibraryView: View {
     @State private var playingItem: VideoItem?
     /// 进播放页那一刻的列表顺序：冻结下来，切集时列表就不会把当前视频甩到末尾
     @State private var playingQueue: [VideoItem] = []
+    /// 多选模式：由「⋯」菜单里的「全选」进入
+    @State private var selecting = false
+    @State private var selection: Set<String> = []
+    @State private var confirmBatchDelete = false
+    @State private var batchMoving = false
     @State private var showFileImporter = false
     @State private var showPhotoPicker = false
-    @State private var photoSelections: [PhotosPickerItem] = []
     @State private var showSettings = false
     @State private var showNewFolder = false
     @State private var newFolderName = ""
@@ -117,20 +121,35 @@ struct LibraryView: View {
 
                     case .more:
                         MoreMenu(
+                            viewMode: settings.libraryView,
                             sortKey: settings.sortKey,
                             ascending: settings.sortAscending,
-                            onNewFolder: { popup = nil; newFolderName = ""; showNewFolder = true },
-                            onSort: { key in
-                                settings.sortKey = key
-                                settings.sortAscending = true
-                            },
-                            onToggleOrder: { settings.sortAscending.toggle() },
-                            onRefresh: {
+                            onSelectAll: {
                                 popup = nil
-                                ThumbnailLoader.shared.clear()
-                                library.reload()
-                                refreshToken += 1
-                                toast("已刷新缩略图")
+                                enterSelectAll()
+                            },
+                            onCreateFolder: {
+                                popup = nil
+                                newFolderName = ""
+                                showNewFolder = true
+                            },
+                            onViewMode: { mode in
+                                settings.libraryView = mode
+                                popup = nil
+                            },
+                            onNameSort: {
+                                popup = nil
+                                if settings.sortKey == .name {
+                                    settings.sortAscending.toggle()
+                                } else {
+                                    settings.sortKey = .name
+                                    settings.sortAscending = true
+                                }
+                            },
+                            onDateSort: {
+                                popup = nil
+                                settings.sortKey = .added
+                                settings.sortAscending = false
                             }
                         )
                         .padding(.top, 60)
@@ -149,6 +168,11 @@ struct LibraryView: View {
             .animation(.easeOut(duration: 0.16), value: folderTarget)
         }
         .overlay { importingOverlay }
+        .overlay(alignment: .bottom) {
+            if selecting {
+                selectionBar
+            }
+        }
         .onAppear {
             library.reload()
             progress.refresh()
@@ -160,10 +184,6 @@ struct LibraryView: View {
             library.reload()
             progress.refresh()
         }
-        .onChange(of: photoSelections) { _, items in
-            guard !items.isEmpty else { return }
-            importPhotos(items)
-        }
         .fileImporter(
             isPresented: $showFileImporter,
             allowedContentTypes: [.movie, .video, .item],
@@ -171,12 +191,14 @@ struct LibraryView: View {
         ) { result in
             handleFileImport(result)
         }
-        .photosPicker(
-            isPresented: $showPhotoPicker,
-            selection: $photoSelections,
-            maxSelectionCount: 20,
-            matching: .videos
-        )
+        .sheet(isPresented: $showPhotoPicker) {
+            // 用 PHPicker 才能拿到相册里的原文件名
+            PhotoPickerSheet { movies in
+                showPhotoPicker = false
+                guard !movies.isEmpty else { return }
+                importMovies(movies)
+            }
+        }
         .fullScreenCover(item: $playingItem) { item in
             PlayerScreen(item: item, queue: playingQueue)
         }
@@ -232,9 +254,24 @@ struct LibraryView: View {
             Text("文件夹里的 \(library.itemsInside(path).count) 个视频会一起从本机移除，这个操作不能撤销。")
         }
         .sheet(item: $movingItem) { item in
-            MoveFolderSheet(item: item, choices: library.folderChoices) { path in
+            MoveFolderSheet(subtitle: item.name, choices: library.folderChoices) { path in
                 moveItem(item, to: path)
             }
+        }
+        .sheet(isPresented: $batchMoving) {
+            MoveFolderSheet(
+                subtitle: "已选 \(selection.count) 个视频",
+                choices: library.folderChoices
+            ) { path in
+                batchMoving = false
+                batchMove(to: path)
+            }
+        }
+        .alert("删除选中的 \(selection.count) 个视频？", isPresented: $confirmBatchDelete) {
+            Button("取消", role: .cancel) {}
+            Button("删除", role: .destructive) { batchDelete() }
+        } message: {
+            Text("文件会从本机移除，这个操作不能撤销。")
         }
     }
 
@@ -255,7 +292,7 @@ struct LibraryView: View {
 
             Spacer(minLength: 0)
 
-            GlassIconButton(systemName: "square.and.arrow.down", size: 36, iconSize: 17) {
+            GlassIconButton(systemName: "arrow.down.doc", size: 36, iconSize: 17) {
                 popup = popup == .importing ? nil : .importing
             }
             GlassIconButton(systemName: "ellipsis", size: 36, iconSize: 17) {
@@ -267,6 +304,7 @@ struct LibraryView: View {
     }
 
     private var title: String {
+        if selecting { return "已选 \(selection.count) 个" }
         guard let folder = library.currentFolder else { return "资料库" }
         return library.displayName(forFolder: folder)
     }
@@ -298,6 +336,8 @@ struct LibraryView: View {
         Group {
             if library.subfolders.isEmpty && sortedVideos.isEmpty {
                 emptyState
+            } else if settings.libraryView == .list {
+                videoList
             } else {
                 grid
             }
@@ -363,7 +403,8 @@ struct LibraryView: View {
             item: item,
             fraction: progress.progressFraction(for: item.id),
             watched: progress.isWatched(item.id),
-            active: target?.item.id == item.id
+            active: target?.item.id == item.id,
+            selected: selection.contains(item.id)
         )
         .background {
             GeometryReader { geo in
@@ -374,6 +415,10 @@ struct LibraryView: View {
             }
         }
         .onTapGesture {
+            if selecting {
+                toggleSelection(item.id)
+                return
+            }
             if target != nil || folderTarget != nil {
                 if Date().timeIntervalSince(menuGuard) > 0.35 { closeMenus() }
             } else {
@@ -382,8 +427,233 @@ struct LibraryView: View {
             }
         }
         .onLongPressGesture(minimumDuration: 0.38) {
-            openCardMenu(item)
+            if selecting {
+                toggleSelection(item.id)
+            } else {
+                openCardMenu(item)
+            }
         }
+    }
+
+    // MARK: - 列表视图
+
+    private var videoList: some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(library.subfolders, id: \.self) { folder in
+                    folderRow(folder)
+                    Rectangle()
+                        .fill(Palette.hairline)
+                        .frame(height: 0.5)
+                        .padding(.leading, sidePadding + 108)
+                }
+
+                ForEach(sortedVideos) { item in
+                    listRow(item)
+                    Rectangle()
+                        .fill(Palette.hairline)
+                        .frame(height: 0.5)
+                        .padding(.leading, sidePadding + 108)
+                }
+            }
+            .padding(.horizontal, sidePadding)
+            .padding(.top, 8)
+            .padding(.bottom, selecting ? 96 : 40)
+        }
+        .scrollDismissesKeyboard(.immediately)
+        .refreshable {
+            library.reload()
+            progress.refresh()
+        }
+    }
+
+    private func folderRow(_ folder: String) -> some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+                .overlay {
+                    Image(systemName: "folder.fill")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Palette.accent.opacity(0.9))
+                }
+                .frame(width: 96, height: 54)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(library.displayName(forFolder: folder))
+                    .font(.system(size: 14.5, weight: .semibold))
+                    .foregroundStyle(Palette.text)
+                    .lineLimit(1)
+                Text("\(count(in: folder)) 个视频")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.secondaryText)
+            }
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Palette.tertiaryText)
+        }
+        .padding(.vertical, 7)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if folderTarget != nil || target != nil {
+                if Date().timeIntervalSince(menuGuard) > 0.35 { closeMenus() }
+            } else {
+                library.currentFolder = folder
+            }
+        }
+        .onLongPressGesture(minimumDuration: 0.38) {
+            openFolderMenu(folder)
+        }
+    }
+
+    private func listRow(_ item: VideoItem) -> some View {
+        VideoRow(
+            item: item,
+            fraction: progress.progressFraction(for: item.id),
+            watched: progress.isWatched(item.id),
+            selected: selection.contains(item.id)
+        )
+        .background {
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: CardFrameKey.self,
+                    value: [item.id: geo.frame(in: .named("root"))]
+                )
+            }
+        }
+        .onTapGesture {
+            if selecting {
+                toggleSelection(item.id)
+                return
+            }
+            if target != nil || folderTarget != nil {
+                if Date().timeIntervalSince(menuGuard) > 0.35 { closeMenus() }
+            } else {
+                playingQueue = sortedVideos
+                playingItem = item
+            }
+        }
+        .onLongPressGesture(minimumDuration: 0.38) {
+            if selecting {
+                toggleSelection(item.id)
+            } else {
+                openCardMenu(item)
+            }
+        }
+    }
+
+    // MARK: - 多选
+
+    private var selectionBar: some View {
+        HStack(spacing: 10) {
+            Button {
+                toggleSelectAll()
+            } label: {
+                Text(selection.count == sortedVideos.count ? "取消全选" : "全选")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Palette.text)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .glass(Capsule())
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                guard !selection.isEmpty else { return }
+                batchMoving = true
+            } label: {
+                Text("移动")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Palette.text)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .glass(Capsule())
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                guard !selection.isEmpty else { return }
+                confirmBatchDelete = true
+            } label: {
+                Text("删除")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Palette.danger)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .glass(Capsule())
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                exitSelection()
+            } label: {
+                Text("完成")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(Palette.accent, in: Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, sidePadding)
+        .padding(.bottom, 24)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+
+    private func enterSelectAll() {
+        withAnimation(.easeOut(duration: 0.16)) {
+            selecting = true
+            selection = Set(sortedVideos.map(\.id))
+        }
+    }
+
+    private func exitSelection() {
+        withAnimation(.easeOut(duration: 0.16)) {
+            selecting = false
+            selection.removeAll()
+        }
+    }
+
+    private func toggleSelection(_ id: String) {
+        if selection.contains(id) {
+            selection.remove(id)
+        } else {
+            selection.insert(id)
+        }
+    }
+
+    private func toggleSelectAll() {
+        if selection.count == sortedVideos.count {
+            selection.removeAll()
+        } else {
+            selection = Set(sortedVideos.map(\.id))
+        }
+    }
+
+    private func batchDelete() {
+        let victims = selection
+        for id in victims { progress.forget(id: id) }
+        let removed = library.deleteMany(ids: victims)
+        exitSelection()
+        toast(removed > 0 ? "已删除 \(removed) 个视频" : "删除失败")
+    }
+
+    private func batchMove(to path: String) {
+        var moved = 0
+        for id in selection {
+            guard let item = library.allItems.first(where: { $0.id == id }) else { continue }
+            let oldID = item.id
+            if let newItem = library.move(item, to: path) {
+                progress.renamePath(from: oldID, to: newItem.id)
+                moved += 1
+            }
+        }
+        exitSelection()
+        let name = path.isEmpty ? "资料库" : library.displayName(forFolder: path)
+        toast(moved > 0 ? "已移动 \(moved) 个视频到「\(name)」" : "没有移动任何文件")
     }
 
     private func count(in folder: String) -> Int {
@@ -752,14 +1022,13 @@ struct LibraryView: View {
         }
     }
 
-    private func importPhotos(_ items: [PhotosPickerItem]) {
+    private func importMovies(_ movies: [PickedMovie]) {
         isImporting = true
         let folder = library.currentFolder
         Task {
-            let count = await PhotoImporter.importItems(items, into: folder, library: library)
+            let count = await PhotoImporter.importFiles(movies, into: folder, library: library)
             await MainActor.run {
                 isImporting = false
-                photoSelections = []
                 toast(count > 0 ? "已从相册导入 \(count) 个视频" : "没有导入成功")
             }
         }
@@ -800,6 +1069,12 @@ struct LibraryView: View {
                         openFolderMenu(first)
                     }
                 }
+            case "list":
+                settings.libraryView = .list
+            case "select":
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { enterSelectAll() }
+            case "more":
+                popup = .more
             case "move":
                 if let first = library.allItems.first {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {

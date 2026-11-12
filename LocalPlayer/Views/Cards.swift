@@ -107,6 +107,8 @@ struct VideoCard: View {
     var watched: Bool = false
     /// 长按选中时角标变实心白底
     var active: Bool = false
+    /// 多选模式下被选中
+    var selected: Bool = false
 
     @State private var duration: Double?
 
@@ -122,6 +124,20 @@ struct VideoCard: View {
                     if watched || active {
                         WatchedBadge(active: active)
                             .padding(8)
+                    }
+                }
+                .overlay(alignment: .topTrailing) {
+                    if selected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(.white, Palette.accent)
+                            .padding(8)
+                    }
+                }
+                .overlay {
+                    if selected {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(Palette.accent, lineWidth: 2)
                     }
                 }
 
@@ -184,5 +200,72 @@ struct FolderCard: View {
                 .padding(.top, 4)
         }
         .contentShape(Rectangle())
+    }
+}
+
+
+// MARK: - 列表行
+
+struct VideoRow: View {
+    let item: VideoItem
+    let fraction: Double
+    var watched: Bool = false
+    var selected: Bool = false
+
+    @State private var duration: Double?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ThumbnailView(item: item, cornerRadius: 8, size: CGSize(width: 96, height: 54))
+                .overlay(alignment: .bottom) {
+                    if fraction > 0.01, !watched {
+                        CardProgressBar(fraction: fraction)
+                    }
+                }
+                .overlay {
+                    if selected {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .strokeBorder(Palette.accent, lineWidth: 2)
+                    }
+                }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(item.displayName)
+                    .font(.system(size: 14.5, weight: .semibold))
+                    .foregroundStyle(Palette.text)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+
+                Text(metaText)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.secondaryText)
+                    .monospacedDigit()
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+
+            if selected {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white, Palette.accent)
+            } else if watched {
+                Image(systemName: "checkmark.circle")
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(Palette.tertiaryText)
+            }
+        }
+        .padding(.vertical, 7)
+        .contentShape(Rectangle())
+        .task(id: item.id) {
+            duration = await ThumbnailLoader.shared.duration(for: item)
+        }
+    }
+
+    private var metaText: String {
+        if let duration, duration > 0 {
+            return "\(Fmt.time(duration)) · \(Fmt.size(item.fileSize))"
+        }
+        return Fmt.size(item.fileSize)
     }
 }
