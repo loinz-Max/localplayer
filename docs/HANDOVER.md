@@ -78,6 +78,29 @@ git config user.email "你的 GitHub 邮箱"
 >
 > 换电脑/换账号时注意：WorkBuddy 的会话记忆跟着账号走，读不到上一轮聊天记录。**凡是要留下的信息都在本文件里**，别指望记忆。
 
+### 1.1 换机器时，把下面这段直接粘进新会话
+
+新会话读不到上一轮的聊天记录，所以这段话是自包含的：
+
+```
+我要接手一个 iOS 项目，先别改代码。
+
+仓库：https://github.com/loinz-Max/localplayer （public；我的账号 hayatlia58-blip 已是协作者，有 push 权限）
+
+请依次做：
+1. clone 到当前工作区（已经有 localplayer 目录就跳过）
+2. 读 docs/HANDOVER.md 和 docs/DESIGN.md
+3. 用 10 行以内汇报：现在到哪一步、0.0.2 里有哪些改动还没上真机、你建议下一步做什么
+4. 然后停下等我说方向
+
+背景（不用再问我）：
+- SwiftUI + AVPlayer 的 iOS 本地视频播放器「幕间」，零第三方依赖、不联网，部署目标 iOS 17，当前版本 0.0.2。
+- 没有 Mac：push 到 main 由 GitHub Actions 编译、出 20 张模拟器截图（ci-shots 分支）、出未签名 ipa。
+- 装机用爱思助手签名（免费证书 7 天）；bundle id 不要改，改了等于换新 App、视频和进度全丢。
+- 界面以代码为准，preview/ 里的 HTML 已经落后。
+- push 报 502 / schannel 错误时，改用 node scripts/push-api.js。
+```
+
 ---
 
 ## 2. 环境与工具链
