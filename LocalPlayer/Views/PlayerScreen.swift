@@ -58,9 +58,8 @@ private struct HUD: Equatable {
     var progress: Double?
 }
 
-/// 亮度 / 音量的顶部横条
+/// 亮度 / 音量：只有一个数值，画成顶部的一根细条
 private struct LevelHUD: Equatable {
-    var icon: String
     /// 0…1
     var value: Double
 }
@@ -321,16 +320,13 @@ private struct PlayerCore: View {
             let delta = -value.translation.height / max(size.height * 0.6, 1)
             let next = min(max(brightnessStart + delta, 0), 1)
             ScreenBrightness.set(next)
-            level = LevelHUD(icon: "sun.max.fill", value: Double(next))
+            level = LevelHUD(value: Double(next))
 
         case .volume:
             let delta = Float(-value.translation.height / max(size.height * 0.6, 1))
             let next = min(max(volumeStart + delta, 0), 1)
             SystemVolume.shared.set(next)
-            level = LevelHUD(
-                icon: next > 0.01 ? "speaker.wave.2.fill" : "speaker.slash.fill",
-                value: Double(next)
-            )
+            level = LevelHUD(value: Double(next))
 
         case .none:
             break
@@ -775,38 +771,24 @@ private struct PlayerCore: View {
         .transition(.opacity)
     }
 
-    /// 亮度 / 音量提示：屏幕顶部居中、横向长条，只显示图标 + 进度 + 百分比
+    /// 亮度 / 音量提示：屏幕顶部居中的一根细条，没有图标也没有数字
     private func levelBar(_ level: LevelHUD) -> some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
-                Image(systemName: level.icon)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 16)
-
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(Color.white.opacity(0.26))
-                        Capsule()
-                            .fill(Color.white)
-                            .frame(
-                                width: max(3, geo.size.width * CGFloat(min(max(level.value, 0), 1)))
-                            )
-                    }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.black.opacity(0.34))
+                    Capsule()
+                        .fill(Color.white)
+                        .frame(
+                            width: max(4, geo.size.width * CGFloat(min(max(level.value, 0), 1)))
+                        )
                 }
-                .frame(height: 5)
-
-                Text("\(Int((level.value * 100).rounded()))")
-                    .font(.system(size: 11, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.92))
-                    .frame(width: 24, alignment: .trailing)
+                .frame(height: 4)
+                .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
             }
-            .padding(.horizontal, 14)
-            .frame(width: 224, height: 34)
-            .glass(Capsule(), style: .stage)
-            .padding(.top, isLandscape ? 12 : 52)
+            .frame(width: 180, height: 4)
+            .padding(.top, isLandscape ? 14 : 54)
 
             Spacer(minLength: 0)
         }
@@ -926,7 +908,7 @@ private struct PlayerCore: View {
                 switch which {
                 case "speed": speedOpen = true
                 case "lock": touchLocked = true
-                case "level": level = LevelHUD(icon: "sun.max.fill", value: 0.62)
+                case "level": level = LevelHUD(value: 0.62)
                 default: queueOpen = true
                 }
             }
