@@ -74,7 +74,6 @@ open LocalPlayer.xcodeproj    # 选自己的 iPhone，⌘R
 
 更多设计层面的硬规则（玻璃配方约束、长按浮起参数、防误触策略）见 [`DESIGN.md`](DESIGN.md) 第 2 节与第 5 节。
 
-## 6. 历史存档
+## 6. 项目进度与交接
 
-早期开发过程的交接文档、验收记录与 HTML 原型已在整理中移出仓库，完整内容保留在 git 历史里：
-`git show snapshot-pre-release-cleanup:docs/HANDOVER.md`（该 tag 是整理前的全量快照）。
+当前进度、待办清单、迭代记录与踩坑全集见 [`HANDOVER.md`](HANDOVER.md)——接手开发从它开始，本文件只讲怎么构建与发版。
