@@ -20,9 +20,10 @@ final class NowPlayingService {
     var onSeek: ((Double) -> Void)?
     var onNext: (() -> Void)?
     var onPrevious: (() -> Void)?
-    /// 用户在锁屏 / 控制中心 / 耳机 / 车机上真正按下了某个键。
-    /// 与 onPlay/onPause 的区别：来电打断、拔耳机这类系统事件不会触发它。
-    var onRemoteCommand: (() -> Void)?
+    /// 播放页之外发生的任何接管：锁屏 / 控制中心 / 耳机 / 车机按键，
+    /// 以及来电打断、拔耳机这类系统事件。
+    /// 播放页收到它就解掉防误触——人已经不在画面上了，锁没有意义。
+    var onExternalControl: (() -> Void)?
 
     private var currentItem: VideoItem?
     private var artwork: MPMediaItemArtwork?
@@ -66,7 +67,7 @@ final class NowPlayingService {
         onSeek = nil
         onNext = nil
         onPrevious = nil
-        onRemoteCommand = nil
+        onExternalControl = nil
 
         currentItem = nil
         artwork = nil
@@ -173,19 +174,19 @@ final class NowPlayingService {
 
         center.playCommand.isEnabled = true
         center.playCommand.addTarget { [weak self] _ in
-            self?.runRemote { $0.onPlay?() }
+            self?.run { $0.onPlay?() }
             return .success
         }
 
         center.pauseCommand.isEnabled = true
         center.pauseCommand.addTarget { [weak self] _ in
-            self?.runRemote { $0.onPause?() }
+            self?.run { $0.onPause?() }
             return .success
         }
 
         center.togglePlayPauseCommand.isEnabled = true
         center.togglePlayPauseCommand.addTarget { [weak self] _ in
-            self?.runRemote { $0.onToggle?() }
+            self?.run { $0.onToggle?() }
             return .success
         }
 
@@ -194,7 +195,7 @@ final class NowPlayingService {
         center.skipForwardCommand.preferredIntervals = [NSNumber(value: 10)]
         center.skipForwardCommand.addTarget { [weak self] event in
             let interval = (event as? MPSkipIntervalCommandEvent)?.interval ?? 10
-            self?.runRemote { $0.onSkip?(interval) }
+            self?.run { $0.onSkip?(interval) }
             return .success
         }
 
@@ -202,7 +203,7 @@ final class NowPlayingService {
         center.skipBackwardCommand.preferredIntervals = [NSNumber(value: 10)]
         center.skipBackwardCommand.addTarget { [weak self] event in
             let interval = (event as? MPSkipIntervalCommandEvent)?.interval ?? 10
-            self?.runRemote { $0.onSkip?(-interval) }
+            self?.run { $0.onSkip?(-interval) }
             return .success
         }
 
@@ -211,37 +212,30 @@ final class NowPlayingService {
             guard let position = (event as? MPChangePlaybackPositionCommandEvent)?.positionTime else {
                 return .commandFailed
             }
-            self?.runRemote { $0.onSeek?(position) }
+            self?.run { $0.onSeek?(position) }
             return .success
         }
 
         center.nextTrackCommand.isEnabled = true
         center.nextTrackCommand.addTarget { [weak self] _ in
-            self?.runRemote { $0.onNext?() }
+            self?.run { $0.onNext?() }
             return .success
         }
 
         center.previousTrackCommand.isEnabled = true
         center.previousTrackCommand.addTarget { [weak self] _ in
-            self?.runRemote { $0.onPrevious?() }
+            self?.run { $0.onPrevious?() }
             return .success
-        }
-    }
-
-    private func run(_ body: @escaping (NowPlayingService) -> Void) {
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            body(self)
         }
     }
 
     /// 遥控命令：先播报「这是外面的操作」，再执行动作。
     /// 顺序很重要——播放页要赶在暂停/播放生效前把防误触解开，
     /// 否则 `isPlaying` 变化会把控件露出来，却仍被锁层挡着按不动。
-    private func runRemote(_ body: @escaping (NowPlayingService) -> Void) {
+    private func run(_ body: @escaping (NowPlayingService) -> Void) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.onRemoteCommand?()
+            self.onExternalControl?()
             body(self)
         }
     }
@@ -265,11 +259,13 @@ final class NowPlayingService {
             case .began:
                 // 来电话 / 闹钟：先记下原本在播，结束后再决定要不要接着放
                 self.resumableAfterInterruption = MPNowPlayingInfoCenter.default().playbackState == .playing
+                self.onExternalControl?()
                 self.onPause?()
             case .ended:
                 let options = (note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt)
                     .map(AVAudioSession.InterruptionOptions.init(rawValue:)) ?? []
                 if options.contains(.shouldResume), self.resumableAfterInterruption {
+                    self.onExternalControl?()
                     self.onPlay?()
                 }
                 self.resumableAfterInterruption = false
@@ -288,6 +284,7 @@ final class NowPlayingService {
                   let reason = AVAudioSession.RouteChangeReason(rawValue: raw) else { return }
             // 拔耳机 / 断开蓝牙：跟着暂停，别突然外放
             if reason == .oldDeviceUnavailable {
+                self.onExternalControl?()
                 self.onPause?()
             }
         }
