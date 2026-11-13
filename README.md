@@ -1,184 +1,207 @@
-# 幕间（Interlude）
+# 幕间 · Interlude
 
-一个人的 iOS 本地视频播放器。SwiftUI + AVPlayer，**零第三方依赖**。
+<p align="center">
+  <img src="LocalPlayer/Assets.xcassets/AppIcon.appiconset/icon-1024.png" width="120" alt="幕间图标" />
+</p>
 
-> 工程名与仓库名仍是 `LocalPlayer`，bundle id 仍是 `com.loinzmax.localplayer`——改名只动桌面显示名，不动这些，才能覆盖安装保住数据。
+**一个人的 iOS 本地视频播放器。SwiftUI + AVPlayer，零第三方依赖，不联网、不登录、不上传。**
 
-视频只存在 App 的 `Documents` 目录里，不联网、不登录、不上传任何服务器。
+![version](https://img.shields.io/badge/version-0.0.5-blue)
+![platform](https://img.shields.io/badge/iOS-17.0%2B-informational)
+![deps](https://img.shields.io/badge/dependencies-0-success)
+![CI](https://img.shields.io/github/actions/workflow/status/loinz-Max/localplayer/ios-ipa.yml?label=build)
+![license](https://img.shields.io/github/license/loinz-Max/localplayer)
 
-- 仓库：<https://github.com/loinz-Max/localplayer>（public）
-- **第一次接手先读 [`docs/HANDOVER.md`](docs/HANDOVER.md)**：进度、权限、待办、踩过的坑都在里面
-- 设计规格：[`docs/DESIGN.md`](docs/DESIGN.md)
-- 界面原型：`preview/` 下的两个 HTML，双击用浏览器打开（支持 `?only=` 单屏查看）。
-  **原型已经落后于实现，以代码为准** —— 具体差在哪见 `docs/DESIGN.md` 第 8 节
-- 验收存档：[`docs/ACCEPTANCE-2026-11-13.md`](docs/ACCEPTANCE-2026-11-13.md)（0.0.3 全部通过）、[`docs/ACCEPTANCE-2026-11-12.md`](docs/ACCEPTANCE-2026-11-12.md)
-- 品牌：桌面名「幕间」（英文 Interlude），图标是深底液态玻璃棱镜。换图标只替换 `icon-1024.png`（1024×1024、无 alpha），改完记得重启手机，iOS 会缓存旧图标
-- 规模：25 个 Swift 文件，约 5400 行；部署目标 iOS 17.0
+视频只存在 App 的 `Documents` 目录里。没有账号体系、没有统计埋点、没有任何服务器——源码里搜不到一个网络请求。
 
----
+| | |
+|---|---|
+| 📥 [下载安装包](#-安装) | Releases 里的未签名 ipa，Sideloadly / 爱思助手自签 |
+| 🛠 [从源码构建](#-从源码构建) | 有 Mac 用 XcodeGen；没 Mac 用 GitHub Actions 白嫖编译 |
+| 📸 [界面截图](#-界面) | 每次构建自动截到 [`ci-shots`](https://github.com/loinz-Max/localplayer/tree/ci-shots) 分支 |
+| 📋 [开发与交接文档](#-文档) | 交接 / 设计规格 / 验收记录都在 `docs/` |
 
-## 一、它现在是什么样
-
-**资料库页**：近黑背景（`#0A0A0B`，顶部压一层 2.8% 白雾让玻璃有东西可透）+ 自定义四层玻璃控件；顶栏左右各两个 36pt 圆键（搜索 / 设置 / 导入 / 更多）+ 居中标题；双列网格，文件夹卡片排在视频前面；卡片是 16:9 缩略图 + 单行标题 + `时长 · 体积`，右下角标显示进度（看完是勾，看一半是百分比）；长按弹出锚定卡片的玻璃菜单（标记已看 / 重命名 / 移到文件夹 / 删除）。
-
-**播放页**：点屏唤出控件，按设置的时长淡出、暂停常驻。页面只有六样东西——左上关闭、右上列表、正中三圆（−10 / 播放 / +10，等大 58–62pt）、底部通栏进度条（时间文字在胶囊两端）、左下防误触锁、右下倍速键（点开是窄浮层，五档直选）。「播完暂停」停在最后一帧时，中间键会变成重播图标。播放列表是右侧抽屉，展开时整层控件收起；原来单独的「播放设置抽屉」已取消，设置项并进 App 设置页。
-
-**能看图的三种方式**
-
-| 方式 | 真实性 | 成本 |
-|---|---|---|
-| `preview/ui-v3.html` 静态原型 | 布局与配色还原，不能播视频 | 0 |
-| GitHub Actions 自动截图（`ci-shots` 分支） | **真实编译 + 真实 SwiftUI 渲染** | 0 |
-| 云 Mac / 本机 Xcode | 完全真实，可打断点改代码 | $0.99 起 |
-
-在线截图：<https://github.com/loinz-Max/localplayer/tree/ci-shots>（每次构建自动覆盖）
+> 工程名与仓库名是 `LocalPlayer`，bundle id 是 `com.loinzmax.localplayer`——改名只动桌面显示名，不动这些，覆盖安装才能保住数据。
 
 ---
 
-## 二、功能范围
+## ✨ 功能
 
-**导入**
-- 文件 App：系统选择器，可多选，能选 SMB / 网盘挂载目录
-- 相册：PHPicker 多选，**保留相册里的原文件名**（`IMG_0001.MOV`），不需要相册权限
-- 访达 / iTunes 文件共享直接拖进 Documents（`UIFileSharingEnabled` 已开）
-- 重名自动追加 ` (2)`，不覆盖
-- 文件 I/O 全在后台跑：底部出现「正在导入 3/8」的胶囊，导入期间照样能滑动、能点开视频；导完汇总说明几个改名、几个失败
+### 资料库
 
-**资料库**
-- 顶栏左侧**搜索**：跨整个资料库按文件名找，结果标出所在文件夹；`‹ Interlude` 面包屑回根目录
-- 文件夹浏览（面包屑返回）、新建文件夹
-- 文件夹长按：重命名（**只改显示名**，磁盘目录名不变）、删除文件夹（连里面的视频一起删，有确认）
-- 排序支持最近播放 / 名称 / 添加日期 / 文件大小，可切升降序；**「⋯」菜单目前只露出名称与日期两档**
-- 视频长按菜单：标记已看（或取消）、重命名（**真改磁盘文件名**，进度与已看标记随之迁移）、移到文件夹、删除
-- 刷新缩略图、空状态引导
+- 文件 App / 相册 / 访达文件共享三种导入，**后台导入**带进度胶囊，导完汇总说明
+- 文件夹浏览、新建、重命名（只改显示名不动磁盘）、删除（有确认）
+- 顶栏搜索：跨整个资料库按文件名找，结果标出所在文件夹
+- 长按视频：标记已看、重命名（真改磁盘文件名，**进度与已看标记随之迁移**）、移到文件夹、删除
+- 缩略图取「时长 12%、不早于 3 秒」那一帧——自动避开片头台标和广告
 
-**播放**
-- 断点续播（尾部 `min(15 秒, 总长 25%)` 视为看完并清进度）
-- 播放模式：列表循环 / 单集循环 / 播完暂停。播完会标记「已看」并留在最近播放里
-- 倍速五档 0.5 / 1 / 1.25 / 1.5 / 2，右下角浮层直选；倍速与模式**只在本次播放有效**，退出播放页即恢复默认
-- 长按倍速：设置里可选 1.5 / 2 / 2.5 / 3，按住 0.28 秒生效、松手复位
-- 画面比例：适应 / 填充 / 拉伸（起始值取设置里的「默认画面」）
-- 控件自动隐藏 2 / 4 / 6 秒、屏幕常亮，都在设置页「播放界面」
-- **防误触**：播放页左下角手动锁；锁上后点屏幕只亮出解锁键，点它解开，单击/双击/滑动一律不响应
-- 手势：横滑调进度（进度条跟手 + 小窗预览目标帧，松手才真 seek）、左半屏竖滑亮度、右半屏竖滑音量、长按加速、双击左右 ±10 秒、双指捏合切画面比例
-- 退出播放页把系统亮度恢复成进入前的值
-- 音频会话 `.playback` + 后台音频：切出去声音继续
-- **锁屏 / 控制中心 / AirPods / 车机的「正在播放」**：封面、文件名、进度条，可播放暂停、±10 秒、拖进度、切集；来电打断后自动续播，拔耳机自动暂停
-- **画中画**：播放页右上角一键进系统小窗；小窗「展开」自动回到播放页并接上进度，「关闭」则暂停
-- **跳过片头**：长片开头可「标记片头」，之后每次播放开头一键跳过；长按胶囊清除标记
-- **播完自动下一集**：设置开关（默认关），「播完暂停」模式下播完直接切下一部
+### 播放
 
-**设置页**（四级菜单，一级只列名称、点进去才有选项）
-- 播放：断点续播、播完自动下一集（默认关）、长按倍速、默认播放模式
-- 播放界面：默认画面、控件自动隐藏、播放页方向（跟随系统 / 竖屏 / 横屏；资料库与设置页固定竖屏）、屏幕常亮
-- 存储：视频占用、视频数量、清理缩略图缓存
-- 关于：版本号（只显示 `0.0.5`）与隐私说明
+- 断点续播；播放模式：列表循环 / 单集循环 / 播完暂停（播完自动标已看）
+- **播完自动下一集**：设置开关（默认关），追剧模式
+- **跳过片头**：长片开头可「标记片头」，之后每次播放开头一键跳过，长按胶囊清除
+- **画中画**：播放页一键进系统小窗；小窗「展开」带进度回到播放页，「关闭」则暂停收尾
+- 倍速五档直选 + 长按倍速（1.5–3× 可配）；画面比例适应 / 填充 / 拉伸
+- 手势：横滑调进度（带目标帧预览）、左滑亮度右滑音量、长按加速、双击 ±10 秒、双指捏合切比例
+- 防误触锁、控件自动隐藏可调、屏幕常亮、退出播放页自动恢复亮度
 
-> **已明确不做**：音轨切换、字幕、局域网传输、海报墙、排序入口补齐（名称 + 最近播放两档够用）。
+### 系统集成
+
+- **锁屏 / 控制中心 / AirPods / 车机「正在播放」**：封面、进度条、±10 秒、拖进度、切集
+- 来电打断后自动续播，拔耳机自动暂停
+- 后台音频：切出去声音继续
+
+### 观感细节
+
+- 自定义四层液态玻璃控件体系（`.ultraThinMaterial` + 染色 + 描边 + 投影）
+- **转屏幕布**：进出播放页的方向旋转发生在黑幕后面，配「竖屏观看 / 横屏观看」小动画——只在真的会转屏时出现
+- 冷启动棱镜 logo 一闪（约 1 秒），灯亮之前的一瞬，不是开屏广告
 
 ---
 
-## 三、怎么跑起来
+## 📱 界面
 
-### 方式 A：本机 Mac（改一次看一次）
+截图来自 **GitHub Actions 真机模拟器实拍**（每次 push 自动重拍，见 [`ci-shots`](https://github.com/loinz-Max/localplayer/tree/ci-shots) 分支）：
+
+| 资料库 | 播放页 | 横屏播放 |
+|:---:|:---:|:---:|
+| ![资料库](https://raw.githubusercontent.com/loinz-Max/localplayer/ci-shots/03-folder.png) | ![播放页](https://raw.githubusercontent.com/loinz-Max/localplayer/ci-shots/04-player.png) | ![横屏](https://raw.githubusercontent.com/loinz-Max/localplayer/ci-shots/06-player-landscape.png) |
+
+更多场景（搜索 / 播放列表 / 设置页 / 长按菜单）也在 `ci-shots` 分支里。
+
+---
+
+## 📥 安装
+
+仓库 Release 提供未签名 ipa（当前 [v0.0.5 直链](https://github.com/loinz-Max/localplayer/releases/download/v0.0.5/LocalPlayer-0.0.5-unsigned.ipa)，2.10 MB）。ipa 未签名，装到真机需要自签：
+
+**Windows（爱思助手 / Sideloadly）**
+
+1. 下载 ipa → 爱思助手「应用 → 导入 ipa」或 [Sideloadly](https://sideloadly.io) 拖入，填 Apple ID 签名
+2. iPhone「设置 → 通用 → VPN 与设备管理」信任证书；iOS 16+ 开「开发者模式」并重启
+3. 免费证书 **7 天**有效，到期重新签一次**覆盖安装**——数据不丢
+
+**⚠️ 天花板（提前讲清）**
+
+- 免费账号同时最多 3 个自签名 App
+- **卸载 = `Documents` 里的视频一起没**。换证书 / 重装时只能覆盖安装，不能先卸；重要片子先在「文件」App 里留一份
+- 换图标后 iOS 会缓存旧图标，重启手机即可，别卸载重装
+
+> ⚠️ 本仓库不是 App Store 分发，也不提供任何可绕过签名的途径。签名环节全部依赖你自己的 Apple ID 与系统机制。
+
+---
+
+## 🛠 从源码构建
+
+### 方式 A：有 Mac
 
 ```bash
-brew install xcodegen          # 只需一次
-cd LocalPlayer
+brew install xcodegen
 xcodegen generate
-open LocalPlayer.xcodeproj     # 选自己的 iPhone，⌘R
+open LocalPlayer.xcodeproj    # 选自己的 iPhone，⌘R
 ```
 
-或者一条命令编译 + 装进模拟器 + 带示例视频启动：
+或一键编译 + 装进模拟器 + 带示例视频启动：`bash scripts/dev.sh`。
+增删 Swift 文件后要重新 `xcodegen generate`。
 
-```bash
-bash scripts/dev.sh
-```
+### 方式 B：没有 Mac（本仓库当前的方式）
 
-`project.yml` 是工程描述文件，**增删文件后要重新 `xcodegen generate`**。
-
-真机安装：Target → Signing & Capabilities 填自己的 Team（免费 Apple ID 也行），把 `PRODUCT_BUNDLE_IDENTIFIER` 改成唯一值（如 `com.你的名字.localplayer`）。
-
-### 方式 B：没有 Mac，用 GitHub 编译（当前使用的方式）
-
-推送 `main` 自动触发（也可在 Actions 页手动 Run workflow），两个 job：
+推送 `main` 自动触发 [`ios-ipa.yml`](.github/workflows/ios-ipa.yml)，两个 job：
 
 | job | 产出 |
 |---|---|
-| 模拟器截图 | `simulator-screenshots`（6 张 PNG）、`xcodebuild-log`，并推送到 `ci-shots` 分支 |
-| 打包未签名 ipa | `LocalPlayer-unsigned-ipa` |
+| 模拟器截图 | `simulator-screenshots` artifact + 推送 `ci-shots` 分支 |
+| 打包未签名 ipa | `LocalPlayer-unsigned-ipa` artifact |
 
-装机流程：
-
-1. Actions → 最近一次 run → 底部 Artifacts 下载 `LocalPlayer-unsigned-ipa`
-2. Windows 装 [Sideloadly](https://sideloadly.io)，数据线连 iPhone，把 ipa 拖进窗口，填 Apple ID，Start
-3. 首次要在 iPhone「设置 → 通用 → VPN 与设备管理」里信任证书；iOS 16+ 还要开「开发者模式」并重启
-4. 免费证书 **7 天**有效，到期用 Sideloadly 覆盖安装一次，或装 AltStore / SideStore 自动续签
-
-**这个方式的天花板**（提前讲清）：免费账号同时最多 3 个自签名 App；删掉 App 再装，`Documents` 里的视频**会一起没**，重要片子先在「文件」App 里留一份。
-
-**新仓库第一次跑之前**：Settings → Actions → General → **Workflow permissions 选 Read and write**，否则「把截图推到 ci-shots」那步会失败（不影响编译，只是看不到图）。
-
-### 方式 C：租云 Mac
-
-想自己拖界面、打断点，就必须有 macOS。MacinCloud 首单 $0.99/24 小时，Scaleway Mac mini €0.11/小时起。传上整个目录后跑 `bash scripts/dev.sh` 即可。
+Fork 之后第一次跑：Settings → Actions → General → **Workflow permissions 选 Read and write**，否则截图推送那步会失败。
 
 ---
 
-## 四、目录结构
+## 📚 文档
+
+| 文档 | 内容 |
+|---|---|
+| [`docs/HANDOVER.md`](docs/HANDOVER.md) | ★ **开发交接文档**：当前进度、迭代记录（0.0.1–0.0.5 逐轮）、待办（P0–P4）、踩坑清单、接手指南 |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | 视觉与交互规格：色板、玻璃配方、每页布局、设计决策表 |
+| [`docs/ACCEPTANCE-2026-11-13.md`](docs/ACCEPTANCE-2026-11-13.md) | 0.0.3 真机验收记录（11 项全过） |
+| [`docs/ACCEPTANCE-2026-11-12.md`](docs/ACCEPTANCE-2026-11-12.md) | 0.0.1 那轮的验收存档 |
+| [`CHANGELOG.md`](CHANGELOG.md) | 逐版本更新记录 |
+| `preview/` | 早期 HTML 界面原型（**已落后于实现，以代码为准**） |
+
+**想接手 / 继续开发？从 [`docs/HANDOVER.md`](docs/HANDOVER.md) 开始**——10 分钟读完，包含完整的上下文与下一步计划。
+
+---
+
+## 🗂 目录结构
 
 ```
 localplayer/
-├─ README.md                        本文件：功能范围、怎么跑、已知边界
+├─ README.md                        本文件
+├─ LICENSE                          MIT
+├─ CHANGELOG.md                     逐版本更新记录
 ├─ project.yml                      XcodeGen 工程描述（部署目标 iOS 17.0）
-├─ Info.plist                       桌面名「幕间」、文件共享、后台音频、方向声明
-├─ CHANGELOG.md                     更新记录
-├─ .github/workflows/ios-ipa.yml    云端编译 + 模拟器截图 + 失败取错误
-├─ docs/
-│  ├─ HANDOVER.md                   ★ 交接文档：进度 / 权限 / 待办 / 坑
-│  ├─ DESIGN.md                     ★ 视觉与交互规格
-│  └─ ACCEPTANCE-2026-11-1x.md      实机验收存档（2026-11-12、2026-11-13）
-├─ preview/ui-v3.html               资料库 / 设置的整体方案
-├─ preview/ui-v5-player.html        播放页改版
-├─ preview/ui-preview.html          最早的初版预览，仅存档
-├─ scripts/dev.sh                   本地一键：生成工程 → 编译 → 装机 → 带数据启动
-├─ scripts/push-api.js              git 被代理挡住时，改用 Git Data API 推送
-└─ LocalPlayer/
-   ├─ Assets.xcassets/AppIcon.appiconset/icon-1024.png   桌面图标（液态玻璃棱镜，1024 单尺寸）
-   ├─ App/LocalPlayerApp.swift      入口，注入三个 store，配 AVAudioSession
+├─ Info.plist                       桌面名、文件共享、后台音频、方向声明
+├─ .github/workflows/ios-ipa.yml    云端编译 + 模拟器截图
+├─ docs/                            交接 / 设计 / 验收文档（见上表）
+├─ preview/                         早期 HTML 原型（存档）
+├─ scripts/
+│  ├─ dev.sh                        本地一键：生成工程 → 编译 → 装机 → 带数据启动
+│  ├─ gh-helper.js                  CI 状态 / artifact 下载的命令行小工具
+│  ├─ publish-ipa.js                把 ipa 发布到 GitHub Release
+│  └─ push-api.js                   git 被代理挡住时改用 Git Data API 推送
+└─ LocalPlayer/                     29 个 Swift 文件 · 约 6,500 行 · 零第三方依赖
+   ├─ App/LocalPlayerApp.swift      入口，注入 store，配 AVAudioSession
    ├─ Models/VideoItem.swift        VideoItem / SortKey / PlayMode
    ├─ Player/
    │  ├─ PlayerModel.swift          AVPlayer 封装：时间轴 / 倍速 / 缓冲 / 失败态
    │  └─ VideoSurface.swift         AVPlayerLayer 的 SwiftUI 包装
    ├─ Services/
-   │  ├─ AppSettings.swift          长按倍速 / 模式 / 排序 / 续播 / 播放页方向（键名集中在此）
+   │  ├─ AppSettings.swift          所有设置项（键名集中在此）
    │  ├─ LibraryStore.swift         扫描、导入、删除、重命名、建文件夹、目录监听
    │  ├─ ImportService.swift        后台导入：copy / move + 进度与结果汇总
-   │  ├─ ProgressStore.swift        进度 + 最近播放顺序 + 已看标记
+   │  ├─ ProgressStore.swift        进度 + 最近播放顺序 + 已看标记 + 片头标记
+   │  ├─ NowPlayingService.swift    锁屏 / 控制中心 / AirPods 遥控、打断恢复
    │  └─ ThumbnailLoader.swift      缩略图与时长缓存（NSCache + 并发去重）
    ├─ Support/
    │  ├─ Palette.swift              色板（所有颜色值集中在此）
    │  ├─ Glass.swift                ★ 四层玻璃配方 + 圆键
    │  ├─ HUD.swift                  ★ 统一轻提示胶囊 + 导入进度
-   │  ├─ Formatters.swift           体积 / 时间格式化、重名去重
-   │  ├─ ScreenBrightness.swift     屏幕亮度（进播放页记录、退出恢复）
-   │  ├─ SystemVolume.swift         系统音量（隐藏 MPVolumeView）
    │  ├─ OrientationController.swift 方向策略：非播放页竖屏，播放页按设置
-   │  ├─ ScrubPreviewer.swift       拖动进度时的抓帧预览（0.5 秒一档 + 节流）
+   │  ├─ OrientationCurtain.swift   ★ 转屏幕布：转屏发生在黑幕后面
+   │  ├─ PiPService.swift           ★ 画中画：接管 / 展开 / 关闭的生命周期
+   │  ├─ LaunchFlash.swift          冷启动品牌一闪
+   │  ├─ ScreenBrightness.swift     亮度（进播放页记录、退出恢复）
+   │  ├─ SystemVolume.swift         系统音量（隐藏 MPVolumeView）
+   │  ├─ ScrubPreviewer.swift       拖动进度的抓帧预览（0.5 秒一档 + 节流）
+   │  ├─ Formatters.swift           体积 / 时间格式化、重名去重
    │  └─ DebugSeed.swift            仅 Debug：示例视频、截图直达参数
    └─ Views/
       ├─ LibraryView.swift          资料库页（网格 + 长按 + 弹窗 + 导入）
-      ├─ LibraryMenus.swift         导入菜单 / 更多菜单 / 长按菜单 / 移动弹窗
+      ├─ LibraryMenus.swift         导入 / 更多 / 长按菜单 / 移动弹窗
       ├─ Cards.swift                视频卡片 / 文件夹卡片 / 角标 / 缩略图
       ├─ PlayerScreen.swift         播放页（顶栏 + 三圆 + 进度条 + 手势 + 浮层）
       ├─ PlayerPanels.swift         播放列表抽屉 / 倍速浮层
-      ├─ PhotoPickerSheet.swift     PHPicker 封装（拿原文件名、不需要相册权限）
+      ├─ PhotoPickerSheet.swift     PHPicker 封装（拿原文件名，不需要相册权限）
       └─ SettingsView.swift         四级设置页
 ```
 
 ---
 
-## 五、调试启动参数（仅 Debug 生效）
+## 🧭 继续开发前值得知道的几件事
+
+- **玻璃配方**在 `Support/Glass.swift`：`.ultraThinMaterial` → 渐变染色 → 0.75pt 上亮下暗描边 → 外投影；四套预设 `.control` / `.panel` / `.stage` / `.hud`。用法 `.glass(Circle())` 或 `.glass(cornerRadius: 20, style: .panel)`。
+- **纯黑底上玻璃永远是黑的**：没有内容可透，染色调得再透也看不出层次。资料库背景顶部特意压了一层 2.8% 白雾（`LibraryView.backgroundLayer`），别当成没用的一行删掉。染色调低时必须同步加亮描边，否则控件边界会散。
+- **方向策略**：`OrientationController` 让非播放页锁竖屏、播放页按设置转。`requestGeometryUpdate` 必须丢到下一个 runloop 才生效；播放页用同层 `.overlay` 呈现而非 fullScreenCover（modal 会绕过 AppDelegate 的方向掩码）。
+- **画中画的命门**：AVPlayer 挂在一个 6×6 的常驻宿主视图上（key window、几乎全透明），全屏页退出后图层仍在层级里，小窗才不会被掐断；播放页 `teardown()` 靠 `PiPService.isTakingOver(_:)` 判断是否跳过清理，否则 `replaceCurrentItem` 一调用小窗立刻黑屏。
+- **轻提示只有一套**：`Support/HUD.swift` 的 `HUDLabel`，toast / 长按倍速 / 拖动预览的时间标签都用它。
+- **画中画必须 `import AVKit`**——`AVPictureInPictureController` 不在 AVFoundation 里；用了 `@Published` 的类要显式声明 `ObservableObject`。
+- 刻意**没用** iOS 26 的 `glassEffect`：需要 Xcode 26 工具链，CI 跑在 `macos-15` 上不稳；自定义 Material 玻璃在 iOS 17 起全部可用。
+- **配色**在 `Palette.swift`，与 `preview/ui-v3.html` 的 `:root` 对应。
+- 播放页的倍速与模式存在 `PlayerScreen` 这一层，切集不丢、退出即丢——这是设计，不是 bug。
+- 模拟器不支持画中画，CI 截图里永远看不到画中画按钮——别误判为漏做。
+
+<details>
+<summary><strong>🔧 调试启动参数（仅 Debug 生效，点开）</strong></summary>
 
 写在 `Support/DebugSeed.swift`，用 `xcrun simctl launch <udid> <bundle-id> <参数>` 传：
 
@@ -187,44 +210,45 @@ localplayer/
 | `-screen home\|folder\|player\|settings\|empty` | 启动后直达某一屏 |
 | `-screen foldermenu` | 直达首页并弹出第一个文件夹的长按菜单 |
 | `-screen move` | 直达首页并弹出「移到文件夹」弹窗 |
-| `-panel queue\|speed\|lock\|level\|boost` | 进播放页后直接展开列表抽屉 / 倍速浮层 / 锁定态 / 亮度条 / 长按倍速提示（截图用） |
-| `-seedDemo 1` | 现场生成 8 段 8 秒示例视频（4 段在「示例视频」文件夹，4 段在根目录） |
-| `-keepChrome 1` | 钉住播放控制栏，否则 4 秒后自动隐藏，截图拍不到 |
-| `-landscape 1` | 调 `requestGeometryUpdate` 真的把 App 转到横屏 |
+| `-panel queue\|speed\|lock\|level\|boost` | 进播放页后直接展开列表抽屉 / 倍速浮层 / 锁定态 / 亮度条 / 长按倍速提示 |
+| `-seedDemo 1` | 现场生成 8 段 8 秒示例视频 |
+| `-keepChrome 1` | 钉住播放控制栏，截图拍得到 |
+| `-landscape 1` | 真的把 App 转到横屏 |
 
-> 注意：模拟器 `simctl io screenshot` 只拍竖屏 buffer，横屏截图里控件会是侧躺的，这是截屏方式的问题，不是布局问题。
+> 模拟器 `simctl io screenshot` 只拍竖屏 buffer，横屏截图里控件是侧躺的——截屏方式的问题，不是布局问题。
 
----
+</details>
 
-## 六、数据与状态
+<details>
+<summary><strong>💾 数据与状态（点开）</strong></summary>
 
 | 数据 | 存哪 | 说明 |
 |---|---|---|
 | 视频文件 | `Documents/` | 相对路径即稳定 ID（`VideoItem.id`） |
-| 播放进度 | UserDefaults `progress.snapshot.v1` | `positions` / `totals` / `lastPlayed` / `order`（最多 60 条）/ `watched` |
-| 文件夹显示名 | UserDefaults `folder.displayNames.v1` | 只影响界面，磁盘目录名与视频 ID 都不变 |
+| 播放进度 | UserDefaults `progress.snapshot.v1` | `positions` / `totals` / `lastPlayed` / `order` / `watched` / `intros` |
+| 文件夹显示名 | UserDefaults `folder.displayNames.v1` | 只影响界面，磁盘目录名不变 |
 | 设置 | UserDefaults | 键名集中在 `AppSettings.Key` |
-| 缩略图 | 内存 NSCache | 取「时长 12%，不早于 3 秒」那一帧（避开片头台标与广告），失败退 3 秒 → 首帧 → 占位图标 |
+| 缩略图 | 内存 NSCache | 失败退 3 秒 → 首帧 → 占位图标 |
 
 视频重命名与「移到文件夹」会迁移进度与已看标记（ID 随路径变化）；删除视频或文件夹会一并清掉记录。
 
----
-
-## 七、已知边界（有意为之）
-
-1. **MKV / AVI 等容器播不了**。AVPlayer 是系统解码器，这是刻意的取舍——画中画、AirPlay、HDR 在 AVPlayer 上零成本，换 mpv 就要重建整条 `AVSampleBufferDisplayLayer` 管线。真要换，只需替换 `PlayerModel` 与 `VideoSurface` 两处，UI 层一行不用动。不支持的扩展名仍会出现在列表里（带警告图标），点开会提示转成 mp4 / mov。
-2. **`ts` / `m2ts` 不当作可播**。AVPlayer 只在 HLS 分片里认 MPEG-TS，独立 `.ts` 文件经常失败。
-3. **不做字幕**（外挂 / 内嵌都不做）、**不做画中画**、**不做音轨选择**。
-4. **不做局域网传输**。要传文件用访达的文件共享或「文件」App 拖拽，Documents 在系统里就是可见目录，不需要 App 自带 HTTP 服务器。
-5. 相册导入拿到的是**导出版本**（相册里做过的剪辑会生效），iCloud「优化存储」的原片需要先下载。
+</details>
 
 ---
 
-## 八、继续开发前值得知道的几件事
+## 🚧 已知边界（有意为之）
 
-- **玻璃配方**在 `Support/Glass.swift`：`.ultraThinMaterial` → 渐变染色 → 0.75pt 上亮下暗描边 → 外投影；四套预设 `.control`（控件）/ `.panel`（菜单抽屉）/ `.stage`（播放页压画面）/ `.hud`（轻提示）。用法 `.glass(Circle())` 或 `.glass(cornerRadius: 20, style: .panel)`。
-- **纯黑底上玻璃永远是黑的**：没有内容可透，染色调得再透也看不出层次。资料库背景顶部特意压了一层 2.8% 白雾（`LibraryView.backgroundLayer`），别当成没用的一行删掉。染色调低时必须同步加亮描边，否则控件边界会散。
-- **轻提示只有一套**：`Support/HUD.swift` 的 `HUDLabel`，toast / 长按倍速 / 拖动预览的时间标签都用它，别再在页面里另写胶囊。
-- 刻意**没用** iOS 26 的 `glassEffect`：需要 Xcode 26 工具链，CI 跑在 `macos-15` 上不稳；原型本来就是自定义暗色玻璃，用 Material 能 1:1 还原。
-- **配色**在 `Palette.swift`，数值与 `preview/ui-v3.html` 的 `:root` 对应，改一处等于改两边。
-- 播放页的倍速与模式存在 `PlayerScreen` 这一层，切集不丢、退出即丢——这是设计，不是 bug。
+1. **MKV / AVI 等容器播不了**。AVPlayer 是系统解码器，这是刻意的取舍——画中画、AirPlay、HDR 在 AVPlayer 上零成本，换 mpv 就要重建整条渲染管线。真要换，只需替换 `PlayerModel` 与 `VideoSurface` 两处，UI 层一行不用动。
+2. **`ts` / `m2ts` 不当作可播**。AVPlayer 只在 HLS 分片里认 MPEG-TS。
+3. **不做字幕、不做音轨切换**。AVPlayer 对内封字幕基本无解，做出来是「有的能用有的不能用」。
+4. **不做局域网传输**。访达文件共享或「文件」App 拖拽即可，Documents 本来就是系统可见目录，App 内再起 HTTP 服务器反而弄脏「不联网」的承诺。
+5. 相册导入拿到的是**导出版本**（相册里做过的剪辑会生效），iCloud「优化存储」的原片需先下载。
+6. 排序只露「最近播放 / 名称」两档——两档够用，四档全露是噪音。
+
+---
+
+## 📄 License
+
+[MIT](LICENSE) © 2026 loinz-Max
+
+**幕间**——两幕之间的黑场，灯暗一下，换一场。
