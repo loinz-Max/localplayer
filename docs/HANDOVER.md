@@ -345,7 +345,7 @@ localplayer/
 发布页直链（不用登录 GitHub，手机浏览器也能直接下）：
 
 ```
-https://github.com/loinz-Max/localplayer/releases/download/v0.0.3/LocalPlayer-0.0.3-unsigned.ipa
+https://github.com/loinz-Max/localplayer/releases/download/v0.0.4/LocalPlayer-0.0.4-unsigned.ipa
 ```
 
 - Release 页：https://github.com/loinz-Max/localplayer/releases
