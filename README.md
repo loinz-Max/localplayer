@@ -19,7 +19,7 @@
 | 📥 [下载安装包](#-安装) | Releases 里的未签名 ipa，Sideloadly / 爱思助手自签 |
 | 🛠 [从源码构建](#-从源码构建) | 有 Mac 用 XcodeGen；没 Mac 用 GitHub Actions 白嫖编译 |
 | 📸 [界面截图](#-界面) | 每次构建自动截到 [`ci-shots`](https://github.com/loinz-Max/localplayer/tree/ci-shots) 分支 |
-| 📋 [开发与交接文档](#-文档) | 交接 / 设计规格 / 验收记录都在 `docs/` |
+| 📋 [设计与开发文档](#-文档) | 设计规格在 `docs/DESIGN.md`，构建指南在 `docs/DEVELOPMENT.md` |
 
 > 工程名与仓库名是 `LocalPlayer`，bundle id 是 `com.loinzmax.localplayer`——改名只动桌面显示名，不动这些，覆盖安装才能保住数据。
 
@@ -120,14 +120,9 @@ Fork 之后第一次跑：Settings → Actions → General → **Workflow permis
 
 | 文档 | 内容 |
 |---|---|
-| [`docs/HANDOVER.md`](docs/HANDOVER.md) | ★ **开发交接文档**：当前进度、迭代记录（0.0.1–0.0.7 逐轮）、待办（P0–P4）、踩坑清单、接手指南 |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | 视觉与交互规格：色板、玻璃配方、每页布局、设计决策表 |
-| [`docs/ACCEPTANCE-2026-11-13.md`](docs/ACCEPTANCE-2026-11-13.md) | 0.0.3 真机验收记录（11 项全过） |
-| [`docs/ACCEPTANCE-2026-11-12.md`](docs/ACCEPTANCE-2026-11-12.md) | 0.0.1 那轮的验收存档 |
+| [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | 构建指南：本地编译、云端 CI、自签装机、发版流程、排障速查 |
 | [`CHANGELOG.md`](CHANGELOG.md) | 逐版本更新记录 |
-| `preview/` | 早期 HTML 界面原型（**已落后于实现，以代码为准**） |
-
-**想接手 / 继续开发？从 [`docs/HANDOVER.md`](docs/HANDOVER.md) 开始**——10 分钟读完，包含完整的上下文与下一步计划。
 
 ---
 
@@ -141,8 +136,9 @@ localplayer/
 ├─ project.yml                      XcodeGen 工程描述（部署目标 iOS 17.0）
 ├─ Info.plist                       桌面名、文件共享、后台音频、方向声明
 ├─ .github/workflows/ios-ipa.yml    云端编译 + 模拟器截图
-├─ docs/                            交接 / 设计 / 验收文档（见上表）
-├─ preview/                         早期 HTML 原型（存档）
+├─ docs/
+│  ├─ DESIGN.md                     视觉与交互规格
+│  └─ DEVELOPMENT.md                构建指南（编译 / 装机 / 发版 / 排障）
 ├─ scripts/
 │  ├─ dev.sh                        本地一键：生成工程 → 编译 → 装机 → 带数据启动
 │  ├─ gh-helper.js                  CI 状态 / artifact 下载的命令行小工具
@@ -195,7 +191,7 @@ localplayer/
 - **轻提示只有一套**：`Support/HUD.swift` 的 `HUDLabel`，toast / 长按倍速 / 拖动预览的时间标签都用它。
 - **画中画必须 `import AVKit`**——`AVPictureInPictureController` 不在 AVFoundation 里；用了 `@Published` 的类要显式声明 `ObservableObject`。
 - 刻意**没用** iOS 26 的 `glassEffect`：需要 Xcode 26 工具链，CI 跑在 `macos-15` 上不稳；自定义 Material 玻璃在 iOS 17 起全部可用。
-- **配色**在 `Palette.swift`，与 `preview/ui-v3.html` 的 `:root` 对应。
+- **配色**在 `Palette.swift`，所有颜色值集中一处；规格对照见 [`docs/DESIGN.md`](docs/DESIGN.md)。
 - 播放页的倍速与模式存在 `PlayerScreen` 这一层，切集不丢、退出即丢——这是设计，不是 bug。
 - 模拟器不支持画中画，CI 截图里永远看不到画中画按钮——别误判为漏做。
 

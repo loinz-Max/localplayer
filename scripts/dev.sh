@@ -42,11 +42,11 @@ xcodebuild \
 APP="build/Build/Products/Debug-iphonesimulator/LocalPlayer.app"
 echo "==> 安装并启动"
 xcrun simctl install "$UDID" "$APP"
-xcrun simctl launch "$UDID" com.example.localplayer -screen home -seedDemo 1
+xcrun simctl launch "$UDID" com.loinzmax.localplayer -screen home -seedDemo 1
 
 echo
 echo "完成。模拟器里就是它真实的样子。"
 echo "想直接看某一屏，可以改成本行重跑："
-echo "  xcrun simctl terminate $UDID com.example.localplayer; \\"
-echo "  xcrun simctl launch $UDID com.example.localplayer -screen player"
+echo "  xcrun simctl terminate $UDID com.loinzmax.localplayer; \\"
+echo "  xcrun simctl launch $UDID com.loinzmax.localplayer -screen player"
 echo "（-screen 可选 home / folder / player / settings / empty）"

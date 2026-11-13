@@ -1,5 +1,14 @@
 # 更新记录
 
+## 未发布
+
+### 仓库整理（不改变行为，不单独出包）
+
+- 按上线版结构精简仓库：删除早期 HTML 原型 `preview/`（已落后于实现）、内部验收存档 `docs/ACCEPTANCE-*.md`、交接文档 `docs/HANDOVER.md`；完整内容保留在 git 历史，`git show snapshot-pre-release-cleanup:docs/HANDOVER.md` 可找回
+- 新增精简版 `docs/DEVELOPMENT.md`（构建 / 装机 / 发版 / 排障）；`docs/` 现在只剩设计规格与开发指南两份
+- 修 `scripts/dev.sh` 的 bundle id（错写成 `com.example.localplayer`，启动参数从未生效过）
+- 删 `Info.plist` 用不到的 `NSPhotoLibraryUsageDescription`（相册导入走 PHPicker，不需要相册授权）
+
 ## 0.0.7（构建号 007）
 
 ### 修复

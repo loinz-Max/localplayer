@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 界面色板。数值与 preview/ui-v3.html 的 :root 一一对应，改这里等于改原型。
+/// 界面色板。所有颜色值集中在此，改这里等于全站换肤（规格见 docs/DESIGN.md）。
 enum Palette {
     /// #0A0A0B
     static let background = Color(red: 10 / 255, green: 10 / 255, blue: 11 / 255)
