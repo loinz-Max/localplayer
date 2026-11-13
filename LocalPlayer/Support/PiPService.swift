@@ -1,3 +1,4 @@
+import AVKit
 import AVFoundation
 import UIKit
 
@@ -13,7 +14,7 @@ import UIKit
 /// 3. 用户在小窗点「展开」→ `restoreUserInterfaceFor…` → 发 `restoreNotification`，
 ///    资料库收到后重新拉起播放页（带转屏幕布）；进度已按 4 秒节流存进 ProgressStore
 /// 4. 用户在小窗点「关闭」→ `didStop` → 暂停、存进度、注销锁屏卡片
-final class PiPService: NSObject {
+final class PiPService: NSObject, ObservableObject {
     static let shared = PiPService()
 
     /// 用户在小窗点「展开」时的恢复请求。userInfo：`item: VideoItem`、`queue: [VideoItem]`
