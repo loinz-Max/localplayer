@@ -1069,6 +1069,15 @@ private struct PlayerCore: View {
     /// 系统遥控命令转发给播放器；队列操作按当前 item 在 queue 里的位置算
     private func wireNowPlaying() {
         let player = model
+
+        // 锁屏 / 控制中心 / 耳机按下任意键，都视为「人在外面接管了视频」：
+        // 先把防误触解开，免得暂停后回到 App，控件露出来了却仍被锁层挡着按不动。
+        // 只认真正的遥控命令，来电打断、拔耳机这类系统事件不解锁。
+        nowPlaying.onRemoteCommand = {
+            guard self.touchLocked else { return }
+            self.unlock()
+        }
+
         nowPlaying.onPlay = { [weak player] in player?.play() }
         nowPlaying.onPause = { [weak player] in player?.pause() }
         nowPlaying.onToggle = { [weak player] in player?.togglePlay() }

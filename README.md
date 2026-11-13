@@ -6,7 +6,7 @@
 
 **一个人的 iOS 本地视频播放器。SwiftUI + AVPlayer，零第三方依赖，不联网、不登录、不上传。**
 
-![version](https://img.shields.io/badge/version-0.0.6-blue)
+![version](https://img.shields.io/badge/version-0.0.7-blue)
 ![platform](https://img.shields.io/badge/iOS-17.0%2B-informational)
 ![deps](https://img.shields.io/badge/dependencies-0-success)
 ![CI](https://img.shields.io/github/actions/workflow/status/loinz-Max/localplayer/ios-ipa.yml?label=build)
@@ -42,7 +42,7 @@
 - **画中画**：播放页一键进系统小窗；小窗「展开」带进度回到播放页，「关闭」则暂停收尾
 - 倍速五档直选 + 长按倍速（1.5–3× 可配）；画面比例适应 / 填充 / 拉伸
 - 手势：横滑调进度（带目标帧预览）、左滑亮度右滑音量、长按加速、双击 ±10 秒、双指捏合切比例
-- 防误触锁、控件自动隐藏可调、屏幕常亮、退出播放页自动恢复亮度
+- 防误触锁（从锁屏 / 控制中心操作会自动解锁）、控件自动隐藏可调、屏幕常亮、退出播放页自动恢复亮度
 
 ### 系统集成
 
@@ -72,7 +72,7 @@
 
 ## 📥 安装
 
-仓库 Release 提供未签名 ipa（当前 [v0.0.6 直链](https://github.com/loinz-Max/localplayer/releases/download/v0.0.6/LocalPlayer-0.0.6-unsigned.ipa)，2.10 MB）。ipa 未签名，装到真机需要自签：
+仓库 Release 提供未签名 ipa（当前 [v0.0.7 直链](https://github.com/loinz-Max/localplayer/releases/download/v0.0.7/LocalPlayer-0.0.7-unsigned.ipa)，2.10 MB）。ipa 未签名，装到真机需要自签：
 
 **Windows（爱思助手 / Sideloadly）**
 
@@ -120,7 +120,7 @@ Fork 之后第一次跑：Settings → Actions → General → **Workflow permis
 
 | 文档 | 内容 |
 |---|---|
-| [`docs/HANDOVER.md`](docs/HANDOVER.md) | ★ **开发交接文档**：当前进度、迭代记录（0.0.1–0.0.6 逐轮）、待办（P0–P4）、踩坑清单、接手指南 |
+| [`docs/HANDOVER.md`](docs/HANDOVER.md) | ★ **开发交接文档**：当前进度、迭代记录（0.0.1–0.0.7 逐轮）、待办（P0–P4）、踩坑清单、接手指南 |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | 视觉与交互规格：色板、玻璃配方、每页布局、设计决策表 |
 | [`docs/ACCEPTANCE-2026-11-13.md`](docs/ACCEPTANCE-2026-11-13.md) | 0.0.3 真机验收记录（11 项全过） |
 | [`docs/ACCEPTANCE-2026-11-12.md`](docs/ACCEPTANCE-2026-11-12.md) | 0.0.1 那轮的验收存档 |

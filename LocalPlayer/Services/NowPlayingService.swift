@@ -20,6 +20,9 @@ final class NowPlayingService {
     var onSeek: ((Double) -> Void)?
     var onNext: (() -> Void)?
     var onPrevious: (() -> Void)?
+    /// 用户在锁屏 / 控制中心 / 耳机 / 车机上真正按下了某个键。
+    /// 与 onPlay/onPause 的区别：来电打断、拔耳机这类系统事件不会触发它。
+    var onRemoteCommand: (() -> Void)?
 
     private var currentItem: VideoItem?
     private var artwork: MPMediaItemArtwork?
@@ -63,6 +66,7 @@ final class NowPlayingService {
         onSeek = nil
         onNext = nil
         onPrevious = nil
+        onRemoteCommand = nil
 
         currentItem = nil
         artwork = nil
@@ -169,19 +173,19 @@ final class NowPlayingService {
 
         center.playCommand.isEnabled = true
         center.playCommand.addTarget { [weak self] _ in
-            self?.run { $0.onPlay?() }
+            self?.runRemote { $0.onPlay?() }
             return .success
         }
 
         center.pauseCommand.isEnabled = true
         center.pauseCommand.addTarget { [weak self] _ in
-            self?.run { $0.onPause?() }
+            self?.runRemote { $0.onPause?() }
             return .success
         }
 
         center.togglePlayPauseCommand.isEnabled = true
         center.togglePlayPauseCommand.addTarget { [weak self] _ in
-            self?.run { $0.onToggle?() }
+            self?.runRemote { $0.onToggle?() }
             return .success
         }
 
@@ -190,7 +194,7 @@ final class NowPlayingService {
         center.skipForwardCommand.preferredIntervals = [NSNumber(value: 10)]
         center.skipForwardCommand.addTarget { [weak self] event in
             let interval = (event as? MPSkipIntervalCommandEvent)?.interval ?? 10
-            self?.run { $0.onSkip?(interval) }
+            self?.runRemote { $0.onSkip?(interval) }
             return .success
         }
 
@@ -198,7 +202,7 @@ final class NowPlayingService {
         center.skipBackwardCommand.preferredIntervals = [NSNumber(value: 10)]
         center.skipBackwardCommand.addTarget { [weak self] event in
             let interval = (event as? MPSkipIntervalCommandEvent)?.interval ?? 10
-            self?.run { $0.onSkip?(-interval) }
+            self?.runRemote { $0.onSkip?(-interval) }
             return .success
         }
 
@@ -207,19 +211,19 @@ final class NowPlayingService {
             guard let position = (event as? MPChangePlaybackPositionCommandEvent)?.positionTime else {
                 return .commandFailed
             }
-            self?.run { $0.onSeek?(position) }
+            self?.runRemote { $0.onSeek?(position) }
             return .success
         }
 
         center.nextTrackCommand.isEnabled = true
         center.nextTrackCommand.addTarget { [weak self] _ in
-            self?.run { $0.onNext?() }
+            self?.runRemote { $0.onNext?() }
             return .success
         }
 
         center.previousTrackCommand.isEnabled = true
         center.previousTrackCommand.addTarget { [weak self] _ in
-            self?.run { $0.onPrevious?() }
+            self?.runRemote { $0.onPrevious?() }
             return .success
         }
     }
@@ -227,6 +231,17 @@ final class NowPlayingService {
     private func run(_ body: @escaping (NowPlayingService) -> Void) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+            body(self)
+        }
+    }
+
+    /// 遥控命令：先播报「这是外面的操作」，再执行动作。
+    /// 顺序很重要——播放页要赶在暂停/播放生效前把防误触解开，
+    /// 否则 `isPlaying` 变化会把控件露出来，却仍被锁层挡着按不动。
+    private func runRemote(_ body: @escaping (NowPlayingService) -> Void) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.onRemoteCommand?()
             body(self)
         }
     }
