@@ -30,9 +30,10 @@ async function j(pathname, opts = {}) {
 }
 
 const note = [
-  '幕间 / Interlude 0.0.2（构建号 002）· 未签名 ipa',
+  '幕间 / Interlude 0.0.3（构建号 003）· 未签名 ipa',
   '',
-  '- 26 个 Swift 文件，零第三方依赖、不联网，iOS 17+',
+  '- 27 个 Swift 文件，零第三方依赖、不联网，iOS 17+',
+  '- 新增转屏幕布：进出播放页的旋转发生在黑幕后面，配「竖屏观看 / 横屏观看」小动画',
   '- 播放页改版：关闭 / 列表 / 三圆 / 通栏进度 / 右下倍速',
   '- 锁屏与控制中心媒体控制（标题、封面、进度、±10s、倍速）',
   '- 资料库顶栏搜索、长按浮起手感、设置页精简',
@@ -48,7 +49,7 @@ const note = [
   } catch (e) {
     rel = await j(`/repos/${REPO}/releases`, {
       method: 'POST',
-      body: JSON.stringify({ tag_name: tag, name: `幕间 0.0.2 · 未签名 ipa`, body: note, draft: false, prerelease: false }),
+      body: JSON.stringify({ tag_name: tag, name: `幕间 ${tag.replace(/^v/, '')} · 未签名 ipa`, body: note, draft: false, prerelease: false }),
     });
     console.log('release 已创建:', rel.id);
   }
