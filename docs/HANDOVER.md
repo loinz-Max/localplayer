@@ -3,7 +3,7 @@
 > 最后更新：2026-11-13 10:45
 > 仓库：<https://github.com/loinz-Max/localplayer>（public，可自由 clone）
 > 当前版本：**0.0.7**（构建号 007；0.0.6 已装机使用中，0.0.7 修的是它暴露的锁屏遥控冲突）｜部署目标 iOS 17.0｜bundle id `com.loinzmax.localplayer`
-> 最新提交：0.0.7 遥控命令先解防误触｜0.0.7 已发 Release，直链见第 8 节
+> 最新提交：`416a14d`（外部接管解防误触）｜0.0.7 已发 Release，直链见第 8 节
 > 规模：29 个 Swift 文件、约 6535 行，零第三方依赖
 > 快照 tag：`snapshot-2026-11-12`（0.0.1 那轮）、`snapshot-2026-11-12-night`（0.0.2 交接点）
 
