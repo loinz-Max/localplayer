@@ -63,10 +63,19 @@ struct PlayerScreen: View {
     }
 
     private func close() {
-        if let onDismiss {
-            onDismiss()
+        // 「跟随系统」下手机还横着时，退出会强制转回竖屏——
+        // 那次旋转交给黑幕遮一下，别让界面在用户眼前猛地拧过去
+        let finish = {
+            if let onDismiss {
+                onDismiss()
+            } else {
+                dismiss()
+            }
+        }
+        if OrientationCurtain.interfaceIsLandscape {
+            OrientationCurtain.shared.perform(.portrait, during: finish)
         } else {
-            dismiss()
+            finish()
         }
     }
 }

@@ -546,8 +546,7 @@ struct LibraryView: View {
             if target != nil || folderTarget != nil {
                 if Date().timeIntervalSince(menuGuard) > 0.35 { closeMenus() }
             } else {
-                playingQueue = activeVideos
-                withAnimation(.easeOut(duration: 0.18)) { playingItem = item }
+                startPlaying(item, queue: activeVideos)
             }
         }
         .onLongPressGesture(minimumDuration: 0.38) {
@@ -659,8 +658,7 @@ struct LibraryView: View {
             if target != nil || folderTarget != nil {
                 if Date().timeIntervalSince(menuGuard) > 0.35 { closeMenus() }
             } else {
-                playingQueue = activeVideos
-                withAnimation(.easeOut(duration: 0.18)) { playingItem = item }
+                startPlaying(item, queue: activeVideos)
             }
         }
         .onLongPressGesture(minimumDuration: 0.38) {
@@ -1032,6 +1030,26 @@ struct LibraryView: View {
 
     private func closeCardMenu() {
         withAnimation(.easeOut(duration: 0.14)) { target = nil }
+    }
+
+    /// 点开一个视频。设置成横屏、或手机正横握（跟随系统）时，进入播放页
+    /// 会发生一次转屏——先拉转屏幕布把旋转遮住，再进播放页。
+    private func startPlaying(_ item: VideoItem, queue: [VideoItem]) {
+        let present = {
+            playingQueue = queue
+            withAnimation(.easeOut(duration: 0.18)) { playingItem = item }
+        }
+        let willRotate: Bool
+        switch AppSettings.storedOrientation() {
+        case .landscape: willRotate = true       // 强制横屏，怎么握都得转
+        case .portrait:  willRotate = false      // 锁竖屏，永远不转
+        case .system:    willRotate = OrientationCurtain.deviceIsLandscape
+        }
+        if willRotate {
+            OrientationCurtain.shared.perform(.landscape, during: present)
+        } else {
+            present()
+        }
     }
 
     private func closeMenus() {

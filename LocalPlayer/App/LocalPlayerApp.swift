@@ -30,6 +30,8 @@ struct LocalPlayerApp: App {
                 .environmentObject(settings)
                 .preferredColorScheme(.dark)
                 .tint(.accentColor)
+                // 转屏幕布挂在最外层：进出播放页的转屏发生在黑幕后面
+                .overlay { OrientationCurtainView() }
                 .onAppear {
                     library.reload()
                     OrientationController.shared.restore()
