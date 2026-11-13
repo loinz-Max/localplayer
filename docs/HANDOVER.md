@@ -3,7 +3,7 @@
 > 最后更新：2026-11-13 10:20
 > 仓库：<https://github.com/loinz-Max/localplayer>（public，可自由 clone）
 > 当前版本：**0.0.3**（构建号 003；关于页只显示版本号，不再带构建号）｜部署目标 iOS 17.0｜bundle id `com.loinzmax.localplayer`
-> 最新提交：`8ce069f`（转屏幕布）｜0.0.2 已发 Release，0.0.3 待打包
+> 最新提交：`47b8fc7`（0.0.3 版本升位）｜0.0.3 已发 Release，直链见第 8 节
 > 规模：27 个 Swift 文件、约 6100 行，零第三方依赖
 > 快照 tag：`snapshot-2026-11-12`（0.0.1 那轮）、`snapshot-2026-11-12-night`（0.0.2 交接点）
 
@@ -361,7 +361,7 @@ localplayer/
 发布页直链（不用登录 GitHub，手机浏览器也能直接下）：
 
 ```
-https://github.com/loinz-Max/localplayer/releases/download/v0.0.2/LocalPlayer-0.0.2-unsigned.ipa
+https://github.com/loinz-Max/localplayer/releases/download/v0.0.3/LocalPlayer-0.0.3-unsigned.ipa
 ```
 
 - Release 页：https://github.com/loinz-Max/localplayer/releases
