@@ -32,6 +32,8 @@ struct LocalPlayerApp: App {
                 .tint(.accentColor)
                 // 转屏幕布挂在最外层：进出播放页的转屏发生在黑幕后面
                 .overlay { OrientationCurtainView() }
+                // 冷启动的品牌一闪（约 1 秒，不拦截触摸）
+                .overlay { LaunchFlash() }
                 .onAppear {
                     library.reload()
                     OrientationController.shared.restore()

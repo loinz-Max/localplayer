@@ -257,6 +257,23 @@ struct SettingsView: View {
                     .labelsHidden()
                     .tint(Palette.accent)
             }
+
+            divider
+
+            row {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("播完自动下一集")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Palette.text)
+                    Text("「播完暂停」模式下播完接着播下一个")
+                        .font(.system(size: 11.5))
+                        .foregroundStyle(Palette.tertiaryText)
+                }
+                Spacer()
+                Toggle("", isOn: boolBinding(\.autoNextOnEnd))
+                    .labelsHidden()
+                    .tint(Palette.accent)
+            }
         }
     }
 

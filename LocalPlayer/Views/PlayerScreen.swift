@@ -110,6 +110,8 @@ private struct PlayerCore: View {
     @StateObject private var model: PlayerModel
     /// 锁屏 / 控制中心 / AirPods 的「正在播放」
     private let nowPlaying = NowPlayingService.shared
+    /// 画中画。isActive 变 true 时（小窗已接管）播放页自动退出
+    @ObservedObject private var pip = PiPService.shared
 
     @State private var chromeVisible = true
     @State private var hideToken = 0
@@ -214,6 +216,10 @@ private struct PlayerCore: View {
 
             scrubPreviewLayer
 
+            if showIntroPill {
+                introPillLayer
+            }
+
             if boosting {
                 boostHint
             }
@@ -271,6 +277,10 @@ private struct PlayerCore: View {
         .onChange(of: model.currentTime) { _, _ in
             maybeSaveProgress()
             pushNowPlaying()
+        }
+        .onChange(of: pip.isActive) { _, active in
+            // 小窗已接管播放，全屏播放页自行退出（teardown 会跳过清理）
+            if active { onClose() }
         }
     }
 
@@ -598,6 +608,16 @@ private struct PlayerCore: View {
 
             Spacer(minLength: 0)
 
+            if PiPService.shared.isSupported {
+                GlassIconButton(
+                    systemName: "pip.enter",
+                    size: 38,
+                    iconSize: 15,
+                    weight: .medium,
+                    style: .stage
+                ) { startPiP() }
+            }
+
             GlassIconButton(
                 systemName: "list.bullet",
                 size: 38,
@@ -608,6 +628,16 @@ private struct PlayerCore: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, isLandscape ? 12 : 6)
+    }
+
+    /// 交给画中画：小窗起来后本页会通过 pip.isActive 自动关闭
+    private func startPiP() {
+        PiPService.shared.start(
+            player: model.player,
+            item: item,
+            queue: queue,
+            progress: progress
+        )
     }
 
     /// 「播完暂停」停在最后一帧时，播放键必须是重播图标，
@@ -878,6 +908,69 @@ private struct PlayerCore: View {
         }
     }
 
+    // MARK: - 跳过片头
+
+    /// 当前视频已标记的片头长度（秒）
+    private var introSeconds: Double { progress.intro(for: item.id) }
+
+    /// 片头内显示「跳过片头」；倍速面板打开时让位（两者都在右下角）
+    private var showIntroPill: Bool {
+        guard !speedOpen, !touchLocked, !queueOpen else { return false }
+        if introSeconds > 0 {
+            return model.currentTime < introSeconds
+        }
+        // 没标记过长片在开头两分钟内给「标记片头」入口；短片（示例视频）不给
+        return model.duration > 300 && model.currentTime < 120
+    }
+
+    /// 右下角、进度条上方；控件隐藏时也留着——片头刚开始往往控件已经缩了
+    private var introPillLayer: some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+            HStack {
+                Spacer(minLength: 0)
+                introPill
+            }
+            .padding(.trailing, isLandscape ? 16 : 20)
+            .padding(.bottom, isLandscape ? 124 : 132)
+        }
+        .transition(.opacity)
+    }
+
+    /// 点按跳过 / 标记；已标记时长按 0.6 秒清除
+    private var introPill: some View {
+        Button {
+            if introSeconds > 0 {
+                model.seek(to: introSeconds)
+                showToast("已跳过片头")
+            } else {
+                let mark = model.currentTime
+                progress.setIntro(item.id, seconds: mark)
+                showToast(String(format: "片头标记 %.0f 秒，下次播放可跳过", mark))
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: introSeconds > 0 ? "forward.end.fill" : "scissors")
+                    .font(.system(size: 11, weight: .semibold))
+                Text(introSeconds > 0 ? "跳过片头" : "标记片头")
+                    .font(.system(size: 12.5, weight: .semibold))
+            }
+            .foregroundStyle(Palette.text)
+            .padding(.horizontal, 13)
+            .frame(height: 32)
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .glass(Capsule(), style: .stage)
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.6).onEnded { _ in
+                guard introSeconds > 0 else { return }
+                progress.setIntro(item.id, seconds: nil)
+                showToast("已清除片头标记")
+            }
+        )
+    }
+
     // MARK: - 浮层
 
     private func toastView(_ text: String) -> some View {
@@ -1077,10 +1170,14 @@ private struct PlayerCore: View {
     }
 
     private func teardown() {
+        // 常亮标记必须无条件还回去，画中画期间屏幕该睡就睡
+        UIApplication.shared.isIdleTimerDisabled = false
+        // 画中画接管中：player 的 currentItem 不能动，锁屏卡片也留给小窗，
+        // 全部清理交给 PiPService.finish（小窗关闭 / 展开时）
+        guard !PiPService.shared.isTakingOver(model.player) else { return }
         if model.duration > 1 {
             progress.update(id: item.id, time: model.currentTime, total: model.duration)
         }
-        UIApplication.shared.isIdleTimerDisabled = false
         nowPlaying.deactivate()
         model.cleanup()
     }
@@ -1106,9 +1203,14 @@ private struct PlayerCore: View {
 
         case .stopAtEnd:
             progress.setWatched(item.id, true)
-            model.settleAtEnd()
-            model.pause()
-            showChrome(persistent: true)
+            // 「播完自动下一集」开着且目录里还有下一部：直接切过去，不停帧
+            if settings.autoNextOnEnd, let next = nextItem(wrapping: false), next.id != item.id {
+                onAdvance(next)
+            } else {
+                model.settleAtEnd()
+                model.pause()
+                showChrome(persistent: true)
+            }
         }
     }
 

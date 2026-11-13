@@ -55,7 +55,8 @@ final class OrientationCurtain: ObservableObject {
         hideTask?.cancel()
         workTask?.cancel()
         self.hint = hint
-        withAnimation(.easeIn(duration: 0.13)) { isShowing = true }
+        // 淡入放慢到 0.2 秒：太快会像闪了一下黑屏，慢一点才有「灯暗下来」的感觉
+        withAnimation(.easeInOut(duration: 0.20)) { isShowing = true }
 
         workTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 150_000_000)
@@ -75,6 +76,8 @@ final class OrientationCurtain: ObservableObject {
 struct OrientationCurtainView: View {
     @ObservedObject private var curtain = OrientationCurtain.shared
     @State private var iconAngle: Double = 0
+    /// 提示文字延后半拍出现：先黑下来、小手机转过去，文字随后跟上，节奏更从容
+    @State private var textVisible = false
 
     var body: some View {
         ZStack {
@@ -86,6 +89,7 @@ struct OrientationCurtainView: View {
                     Text(curtain.hint == .portrait ? "竖屏观看" : "横屏观看")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(Palette.text)
+                        .opacity(textVisible ? 1 : 0)
                 }
                 .transition(.opacity)
             }
@@ -93,7 +97,22 @@ struct OrientationCurtainView: View {
         .ignoresSafeArea()
         .allowsHitTesting(curtain.isShowing)
         .onAppear(perform: syncAngle)
+        .onChange(of: curtain.isShowing) { _, showing in
+            if showing {
+                scheduleText()
+            } else {
+                withAnimation(.easeIn(duration: 0.12)) { textVisible = false }
+            }
+        }
         .onChange(of: curtain.hint) { _ in syncAngle() }
+    }
+
+    private func scheduleText() {
+        textVisible = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
+            guard curtain.isShowing else { return }
+            withAnimation(.easeOut(duration: 0.22)) { textVisible = true }
+        }
     }
 
     /// 一枚极简的小手机（圆角矩形 + 听筒点），弹簧式转过去

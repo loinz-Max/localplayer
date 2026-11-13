@@ -16,6 +16,7 @@ final class AppSettings: ObservableObject {
         static let keepAwake = "keepAwake"
         static let orientationLock = "orientationLock"
         static let libraryView = "libraryView"
+        static let autoNextOnEnd = "autoNextOnEnd"
     }
 
     enum LibraryView: String, CaseIterable, Identifiable {
@@ -127,6 +128,12 @@ final class AppSettings: ObservableObject {
     var libraryView: LibraryView {
         get { LibraryView(rawValue: read(Key.libraryView, LibraryView.grid.rawValue)) ?? .grid }
         set { write(Key.libraryView, newValue.rawValue) }
+    }
+
+    /// 「播完暂停」模式下播完是否自动播下一个。列表循环本来就自动切，此开关只影响播完暂停
+    var autoNextOnEnd: Bool {
+        get { read(Key.autoNextOnEnd, false) }
+        set { write(Key.autoNextOnEnd, newValue) }
     }
 
     /// 方向锁定：跟随系统 / 竖屏 / 横屏

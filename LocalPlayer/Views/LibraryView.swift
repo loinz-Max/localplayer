@@ -193,6 +193,12 @@ struct LibraryView: View {
             }
         }
         .animation(.easeOut(duration: 0.18), value: playingItem?.id)
+        // 画中画小窗点「展开」：把全屏播放页拉回来（横屏时转屏交给幕布）
+        .onReceive(NotificationCenter.default.publisher(for: PiPService.restoreNotification)) { note in
+            guard let item = note.userInfo?["item"] as? VideoItem else { return }
+            let queue = (note.userInfo?["queue"] as? [VideoItem]) ?? [item]
+            startPlaying(item, queue: queue)
+        }
         // 导入进度贴在底部，不铺遮罩：导入期间照样能滑、能点开视频。
         // 位置和 toast 一致，导入结束的汇总提示正好接在同一处。
         .overlay(alignment: .bottom) {
