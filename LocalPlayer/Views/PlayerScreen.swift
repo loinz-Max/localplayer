@@ -116,7 +116,6 @@ private struct PlayerCore: View {
     @State private var chromeVisible = true
     @State private var hideToken = 0
     @State private var speedOpen = false
-    @State private var toastText: String?
 
     /// 画面比例：本次播放内有效
     @State private var gravityIndex: Int
@@ -228,10 +227,6 @@ private struct PlayerCore: View {
 
             if touchLocked {
                 lockLayer
-            }
-
-            if let toastText {
-                toastView(toastText)
             }
 
             if let failed = model.failed {
@@ -453,13 +448,6 @@ private struct PlayerCore: View {
     }
 
     // MARK: - 显隐
-
-    private func showToast(_ text: String) {
-        withAnimation(.easeOut(duration: 0.15)) { toastText = text }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-            withAnimation(.easeIn(duration: 0.2)) { toastText = nil }
-        }
-    }
 
     private func toggleChrome() {
         if chromeVisible {
@@ -908,16 +896,6 @@ private struct PlayerCore: View {
     }
 
     // MARK: - 浮层
-
-    private func toastView(_ text: String) -> some View {
-        VStack {
-            Spacer(minLength: 0)
-            HUDLabel(text: text)
-                .padding(.bottom, 120)
-        }
-        .allowsHitTesting(false)
-        .transition(.opacity)
-    }
 
     /// 亮度 / 音量提示：屏幕顶部居中的一根细条，没有图标也没有数字
     private func levelBar(_ level: LevelHUD) -> some View {

@@ -14,6 +14,8 @@ final class ProgressStore: ObservableObject {
 
     @Published private(set) var positions: [String: Double] = [:]
     @Published private(set) var totals: [String: Double] = [:]
+    /// 最近播放顺序。界面暂时没有「最近播放」列表/排序，这两个字段仍随每次
+    /// 播放更新，是为将来要加这个视图时不必回溯历史；不读它不会产生任何副作用。
     @Published private(set) var lastPlayed: String?
     @Published private(set) var order: [String] = []
     @Published private(set) var watched: Set<String> = []
@@ -85,17 +87,6 @@ final class ProgressStore: ObservableObject {
         if let index = order.firstIndex(of: old) { order[index] = new }
         if lastPlayed == old { lastPlayed = new }
         save()
-    }
-
-    /// 最近观看列表中仍然存在的条目
-    func recentItems(from items: [VideoItem], limit: Int = 12) -> [VideoItem] {
-        let map = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0) })
-        return order.compactMap { map[$0] }.prefix(limit).map { $0 }
-    }
-
-    /// 「最近播放」排序用的排名，没播过的排到最后
-    func recencyRank(_ id: String) -> Int {
-        order.firstIndex(of: id) ?? Int.max
     }
 
     private func load() {

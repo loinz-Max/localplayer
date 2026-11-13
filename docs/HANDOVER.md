@@ -4,7 +4,7 @@
 > 仓库：<https://github.com/loinz-Max/localplayer>（public，可自由 clone）
 > 当前版本：**0.0.7**（构建号 007；0.0.6 已装机使用中，0.0.7 修的是它暴露的锁屏遥控冲突）｜部署目标 iOS 17.0｜bundle id `com.loinzmax.localplayer`
 > 最新提交：`416a14d`（外部接管解防误触）｜0.0.7 已发 Release，直链见第 8 节
-> 规模：29 个 Swift 文件、约 6535 行，零第三方依赖
+> 规模：29 个 Swift 文件、约 6400 行，零第三方依赖
 > 快照 tag：`snapshot-2026-11-12`（0.0.1 那轮）、`snapshot-2026-11-12-night`（0.0.2 交接点）
 
 一句话：这是一个只给自己用的 iOS 本地视频播放器，SwiftUI + AVPlayer，视频只躺在 App 的 `Documents` 里，不联网、不登录、不上传。
@@ -48,6 +48,7 @@
 | 14 | **画中画 + 自动连播 + 跳过片头 + 观感打磨**：新增 `Support/PiPService.swift`（小窗接管、展开回播放页）、`Support/LaunchFlash.swift`（冷启动品牌一闪）；「播完自动下一集」开关；片头标记/跳过胶囊（**0.0.6 已移除**）；幕布淡入放慢、文字延后半拍 | `e334d78` + `df9bcdc` | ✅ 已验（2026-11-13） |
 | 15 | **真机试用后的五项修正**：长按 `maximumDistance` 12→6pt 且拖动即作废 pending 计时（修左侧竖滑亮度误触加速）；幕布提速（0.94 秒 → 0.72 秒）且黑幕 94%→98.5%；列表抽屉 264/320→236/288；「⋯」菜单 210→186；**整个移除跳过片头**（标记逻辑不可靠） | `f735830` + `667b8c3` | 🟡 已装机使用中 |
 | 16 | **外部接管自动解防误触**：`NowPlayingService` 新增 `onExternalControl`，锁屏/控制中心/耳机/车机的遥控命令（经 `run`）与来电打断、拔耳机（`interruptionNotification` / `routeChangeNotification`）都会先播报，播放页收到即解防误触再执行命令 | 本轮 | ⏳ 待真机验 |
+| 17 | **去腐**：删 7 处死代码（片头遗留 toast、`SortKey` 两档、`recentItems`、`recencyRank`、`breadcrumbs`、`shortTitle`、`Fmt.date`、iOS 16 兜底），文档纠 11 处与代码不符的表述 | 本轮 | ✅ 仅内部，无行为变化 |
 
 四轮真机验收记录：[`ACCEPTANCE-2026-11-12.md`](ACCEPTANCE-2026-11-12.md)（前三轮，提出问题并已关闭）、[`ACCEPTANCE-2026-11-13.md`](ACCEPTANCE-2026-11-13.md)（0.0.3 整批验收，全部通过）。
 
@@ -157,7 +158,7 @@ Windows 上凭据存在「凭据管理器 → `git:https://github.com`」，**�
 ```
 localplayer/
 ├─ README.md                     项目说明：功能、怎么跑、边界
-├─ CHANGELOG.md                  更新记录（0.0.3 / 0.0.2 / 0.0.1 均已发布，0.0.3 起每版真机验收后才算完）
+├─ CHANGELOG.md                  更新记录（0.0.1–0.0.7，当前最新 0.0.7）
 ├─ project.yml                   XcodeGen 工程描述（唯一的工程配置来源）
 ├─ Info.plist                    桌面显示名「幕间」、文件共享、后台音频、方向声明
 ├─ .github/workflows/ios-ipa.yml 云端编译 + 截图 + 出包 + 失败取错误
@@ -170,7 +171,7 @@ localplayer/
 │  ├─ ui-v3.html                 资料库 + 设置的整体方案（**已落后于代码**）
 │  ├─ ui-v5-player.html          播放页改版（同样只作参考）
 │  ├─ ui-preview.html            最早的初版预览，仅存档
-│  └─ shots/                     最初交接包里的 4 张原型效果图（未纳入版本管理）
+│  └─ shots/                     最初交接包里的 4 张原型效果图（已入库，但无任何文档引用，可删）
 ├─ scripts/
 │  ├─ dev.sh                     有 Mac 时一键编译装机
 │  ├─ push-api.js                git 通道被挡时的推送兜底
@@ -258,19 +259,20 @@ localplayer/
 
 **P1 · 系统集成**
 
-- ~~锁屏 / 控制中心媒体控制~~ ✅ 已完成（`227ff27`，`Services/NowPlayingService.swift` 280 行）：上报标题/文件夹/时长/进度/倍速/封面，接收播放、暂停、±10 秒、拖进度、上一集/下一集，另加来电打断恢复与拔耳机暂停。
+- ~~锁屏 / 控制中心媒体控制~~ ✅ 已完成（`227ff27`，`Services/NowPlayingService.swift` 292 行）：上报标题/文件夹/时长/进度/倍速/封面，接收播放、暂停、±10 秒、拖进度、上一集/下一集，另加来电打断恢复与拔耳机暂停。
 - ~~画中画~~ ✅ 已完成（本轮，`Support/PiPService.swift`）：播放页一键进小窗、小窗展开自动回播放页、进度照常落盘；「回微信」场景齐了。
 
 **P2 · 小功能补齐**
 
-- 「⋯」菜单的排序只露了名称/日期，`SortKey` 里的「最近播放」「文件大小」没有入口（排序逻辑本身已实现）。
-- 存储页加「清空播放记录」「清理失效记录」（`ProgressStore.forget` 目前没人调用）。
+- 存储页加「清空播放记录」（删除单个视频时 `ProgressStore.forget` 会自动清，但缺一个整体清零的入口）。
+- `Info.plist` 的 `NSPhotoLibraryUsageDescription` 目前用不到：相册导入走 `PHPickerViewController`，不需要相册授权，可以删。
+- `ProgressStore` 的 `lastPlayed` / `order` 只写不读（界面没有「最近播放」列表），留着是为将来做这个视图。
 - 多选只有删除、移动，缺「批量标记已看」。
 
 **P3 · 工程债**
 
-- `LibraryView.swift` 1279 行、`PlayerScreen.swift` 1112 行、`SettingsView.swift` 503 行，可按「手势 / 浮层 / 控制层」拆成 extension 文件。
-- 零单元测试。`Formatters`、`ProgressStore` 的「末尾 15 秒算看完」、四种排序都适合补 XCTest，CI 目前只编译不跑测试。
+- `LibraryView.swift` 1290 行、`PlayerScreen.swift` 1145 行、`SettingsView.swift` 520 行，可按「手势 / 浮层 / 控制层」拆成 extension 文件。
+- 零单元测试。`Formatters`、`ProgressStore` 的「末尾 15 秒算看完」、两种排序都适合补 XCTest，CI 目前只编译不跑测试。
 
 **P4 · 可选**
 
@@ -283,7 +285,7 @@ localplayer/
 | 项 | 原因 |
 |---|---|
 | ~~搜索框~~ | 原来判断「视频不多，加了是噪音」；2026-11-12 改主意，顶栏左侧已加搜索（跨库按文件名） |
-| 排序入口补齐 | 2026-11-13 用户决策：名称 + 最近播放两种就够，`SortKey` 里另两种不露出来 |
+| 排序入口补齐 | 2026-11-13 用户决策：两种就够。0.0.7 之后 `SortKey` 已裁到「名称 / 日期」两档，另两种（最近播放 / 文件大小）连代码一起删了 |
 | 字幕 / 音轨切换 | AVPlayer 对 mkv 内封字幕基本无解，做出来是「有的能用有的不能」 |
 | 海报墙 / 收藏 / 标签 / 评分 | 文件夹层级够用 |
 | 局域网传输 | 用「文件」App 或访达共享，Documents 本身就是可见目录 |
@@ -294,7 +296,7 @@ localplayer/
 
 - **版本号策略**：每批功能改完就升一位。0.0.2 / 0.0.3 已发 Release（0.0.3 真机验收通过）；0.0.4 → 0.0.5（画中画/连播/片头）；0.0.6（真机试用后的五项修正，片头已移除）；0.0.7（`MARKETING_VERSION: 0.0.7` / `CURRENT_PROJECT_VERSION: 007`，锁屏遥控解防误触）。关于页只显示版本号、不显示构建号。
 - **列表循环下播完是否自动标已看**：现在的实现是「播完就打勾」（单集循环除外）。如果你习惯挂着循环当背景放，可能会积累一堆勾，需要改成只在「播完暂停」时标记。
-- **菜单尺寸**：宽 200 / 行高 44，一直没确认是否偏小。
+- **菜单尺寸**：宽 186（0.0.6 从 200 收窄）/ 行高 44，一直没确认是否偏小。
 - **长按放大比例**：现在是 1.09 + 白 28% 亮边。觉得不够就上 1.12（列间距 12pt 还放得下），觉得晃眼回 1.06；亮边可 18%–40% 之间调。都只改 `LibraryView.liftScale` 与 `Cards.swift` 里那两个常量。
 - **搜索范围**：现在跨整个资料库。如果更想「只在当前文件夹里搜」，改 `searchResults` 取 `library.items` 即可。
 

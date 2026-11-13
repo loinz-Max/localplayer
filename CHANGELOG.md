@@ -6,6 +6,14 @@
 
 - **锁屏 / 控制中心的暂停不再和防误触打架**：播放页锁着防误触时，从锁屏或控制中心按暂停，控件会被唤出来却仍被锁层挡着，看着像「按了没反应」。现在凡是播放页以外的接管——锁屏 / 控制中心 / 耳机 / 车机按键（播放、暂停、±10 秒、拖进度、切集），以及来电打断、拔耳机断开——都会先解开防误触再执行命令。锁的用途是防手掌误触，不是拦住在外面动视频的人
 
+### 内部整理（不改变行为，不单独出包）
+
+- 删掉 0.0.6 移除「跳过片头」时留下的 toast 死代码：`PlayerScreen` 里的 `toastText` 状态、body 分支、`showToast()`、`toastView()`
+- `SortKey` 从四档裁到「名称 / 日期」两档：连排序分支、`ProgressStore.recencyRank` 一起删；旧存档里的 recent / size 解码时回落到名称
+- 另删四处无人调用：`ProgressStore.recentItems`、`LibraryStore.breadcrumbs`、`PlayMode.shortTitle`、`Fmt.date`
+- `DebugSeed` 去掉 iOS 16 以下的 `UIDevice.setValue` 兜底（部署目标已是 17）
+- 文档纠错 11 处：`DESIGN` 仍写「不做画中画」、菜单宽 200（实为 186）、「两个原型」（实为三个）；`HANDOVER` 说 `ProgressStore.forget` 没人调用（删除流程一直在用）、目录树停在 0.0.3、`preview/shots` 说未入库（实际已入库）；`README` 把排序两档说成「最近播放 / 名称」（实际是名称 / 日期）
+
 ## 0.0.6（构建号 006）· 2026-11-13 发布
 
 真机试用 0.0.5 后的五项修正。

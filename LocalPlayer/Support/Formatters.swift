@@ -10,12 +10,6 @@ enum Fmt {
         return f
     }()
 
-    static let date: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy/M/d"
-        return f
-    }()
-
     static func size(_ value: Int64) -> String {
         bytes.string(fromByteCount: value)
     }

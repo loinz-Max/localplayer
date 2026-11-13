@@ -118,18 +118,6 @@ final class LibraryStore: ObservableObject {
         }
     }
 
-    /// 面包屑
-    var breadcrumbs: [String] {
-        guard let current = currentFolder, !current.isEmpty else { return [] }
-        var result: [String] = []
-        var accumulated: [String] = []
-        for component in current.components(separatedBy: "/") {
-            accumulated.append(component)
-            result.append(accumulated.joined(separator: "/"))
-        }
-        return result
-    }
-
     var isEmpty: Bool { allItems.isEmpty && folders.isEmpty }
 
     // MARK: - 导入 / 删除

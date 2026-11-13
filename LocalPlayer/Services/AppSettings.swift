@@ -75,8 +75,7 @@ final class AppSettings: ObservableObject {
         set { write(Key.resumePlayback, newValue) }
     }
 
-    /// 默认倍速。进入播放页时的起始值，播放页抽屉里可以临时改
-    /// 长按画面时的倍速（播放页里按住就按这个速度跑）
+    /// 长按画面时的倍速（按住就用这个速度跑，松手复原）。播放页里每次重新读取
     var longPressRate: Double {
         get { read(Key.longPressRate, 2.0) }
         set { write(Key.longPressRate, newValue) }
@@ -155,8 +154,8 @@ final class AppSettings: ObservableObject {
 // MARK: - 播放页的初始值
 
 extension AppSettings {
-    /// 播放页挂在 fullScreenCover 里，init 阶段拿不到 EnvironmentObject，
-    /// 所以用这两个静态入口读当前默认值；键名仍然只在 Key 里定义一次。
+    /// 播放页的 `init` 阶段还拿不到 EnvironmentObject（它是同层 overlay 拉起来的），
+    /// 所以用这几个静态入口读当前默认值；键名仍然只在 Key 里定义一次。
     static func storedLongPressRate() -> Double {
         (UserDefaults.standard.object(forKey: Key.longPressRate) as? Double) ?? 2.0
     }

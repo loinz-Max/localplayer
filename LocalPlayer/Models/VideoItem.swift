@@ -68,20 +68,11 @@ extension VideoItem {
     }
 }
 
-/// 排序依据：⋯ 菜单里的四选一
-enum SortKey: String, CaseIterable, Identifiable {
-    case recent, name, added, size
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .recent: return "最近播放"
-        case .name: return "名称"
-        case .added: return "添加日期"
-        case .size: return "文件大小"
-        }
-    }
+/// 排序依据：⋯ 菜单里的二选一（名称 / 日期）。
+/// 菜单文案写在 `MoreMenu` 里（带 ↑↓），所以这里不需要 title；
+/// 旧数据可能存着已移除的 recent / size，解码失败时回落到名称。
+enum SortKey: String {
+    case name, added
 }
 
 /// 播放模式：单集循环 / 列表循环 / 播完暂停
@@ -98,11 +89,4 @@ enum PlayMode: String, CaseIterable, Identifiable {
         }
     }
 
-    var shortTitle: String {
-        switch self {
-        case .loopAll: return "列表循环"
-        case .loopOne: return "单集循环"
-        case .stopAtEnd: return "播完暂停"
-        }
-    }
 }

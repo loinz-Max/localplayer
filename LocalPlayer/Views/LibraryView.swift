@@ -877,32 +877,19 @@ struct LibraryView: View {
         .padding(.bottom, 80)
     }
 
-    /// 文件夹排在前面，视频按当前排序规则
-    private var sortedVideos: [VideoItem] {        let list = library.items
+    /// 文件夹排在前面，视频按当前排序规则（名称 / 日期）
+    private var sortedVideos: [VideoItem] {
+        let list = library.items
         let key = settings.sortKey
         let asc = settings.sortAscending
 
         return list.sorted { a, b in
             let forward: Bool
             switch key {
-            case .recent:
-                let ra = progress.recencyRank(a.id)
-                let rb = progress.recencyRank(b.id)
-                if ra != rb {
-                    forward = ra < rb
-                } else {
-                    forward = a.modified > b.modified
-                }
             case .name:
                 forward = a.name.localizedStandardCompare(b.name) == .orderedAscending
             case .added:
                 forward = a.modified > b.modified
-            case .size:
-                if a.fileSize != b.fileSize {
-                    forward = a.fileSize < b.fileSize
-                } else {
-                    forward = a.name.localizedStandardCompare(b.name) == .orderedAscending
-                }
             }
             return asc ? forward : !forward
         }

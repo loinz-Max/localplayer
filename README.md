@@ -158,7 +158,7 @@ localplayer/
    │  ├─ AppSettings.swift          所有设置项（键名集中在此）
    │  ├─ LibraryStore.swift         扫描、导入、删除、重命名、建文件夹、目录监听
    │  ├─ ImportService.swift        后台导入：copy / move + 进度与结果汇总
-   │  ├─ ProgressStore.swift        进度 + 最近播放顺序 + 已看标记
+   │  ├─ ProgressStore.swift        播放进度 + 已看标记（另留最近播放顺序字段）
    │  ├─ NowPlayingService.swift    锁屏 / 控制中心 / AirPods 遥控、打断恢复
    │  └─ ThumbnailLoader.swift      缩略图与时长缓存（NSCache + 并发去重）
    ├─ Support/
@@ -242,7 +242,7 @@ localplayer/
 3. **不做字幕、不做音轨切换**。AVPlayer 对内封字幕基本无解，做出来是「有的能用有的不能用」。
 4. **不做局域网传输**。访达文件共享或「文件」App 拖拽即可，Documents 本来就是系统可见目录，App 内再起 HTTP 服务器反而弄脏「不联网」的承诺。
 5. 相册导入拿到的是**导出版本**（相册里做过的剪辑会生效），iCloud「优化存储」的原片需先下载。
-6. 排序只露「最近播放 / 名称」两档——两档够用，四档全露是噪音。
+6. 排序只有「名称 / 日期」两档——两档够用，四档全露是噪音。
 
 ---
 

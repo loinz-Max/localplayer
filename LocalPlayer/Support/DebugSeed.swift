@@ -27,12 +27,8 @@ enum DebugSeed {
                 .first(where: { $0.activationState == .foregroundActive })
                 ?? UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first
             else { return }
-            if #available(iOS 16.0, *) {
-                scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight))
-            } else {
-                UIDevice.current.setValue(UIInterfaceOrientation.landscapeRight.rawValue,
-                                          forKey: "orientation")
-            }
+            // 部署目标是 iOS 17，直接用 iOS 16 起的 requestGeometryUpdate
+            scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight))
         }
     }
 
