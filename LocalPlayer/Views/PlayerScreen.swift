@@ -189,7 +189,9 @@ private struct PlayerCore: View {
                     .onTapGesture { handleTap() }
                     .onLongPressGesture(
                         minimumDuration: 0.6,
-                        maximumDistance: 12,
+                        // 收紧到 6pt：调亮度/音量时手指常常是慢慢起手的，
+                        // 原来 12pt 的容差会让竖滑的前 0.28 秒被判成长按加速
+                        maximumDistance: 6,
                         perform: {},
                         onPressingChanged: { pressing in
                             handlePressChange(pressing)
@@ -215,10 +217,6 @@ private struct PlayerCore: View {
             speedPanelLayer
 
             scrubPreviewLayer
-
-            if showIntroPill {
-                introPillLayer
-            }
 
             if boosting {
                 boostHint
@@ -331,10 +329,11 @@ private struct PlayerCore: View {
     private func handleDragChanged(_ value: DragGesture.Value, size: CGSize) {
         guard !touchLocked else { return }
 
-        // 长按已经进了加速：手指一移动就立刻退出加速，交给滑动去跳进度。
-        // 两个手势不能同时生效，否则会边加速边跳，手感很飘。
+        // 一滑动就取消长按加速——包括还在 0.28 秒等待里的那一次。
+        // 左侧竖滑调亮度的手势起手慢，不取消 pending 计时器就会先被点亮成加速，
+        // 边加速边调亮度，手感很飘。
+        pressToken += 1
         if boosting {
-            pressToken += 1
             endBoost()
         }
 
@@ -906,69 +905,6 @@ private struct PlayerCore: View {
             .padding(.vertical, isLandscape ? 0 : 4)
             .transition(.move(edge: .trailing).combined(with: .opacity))
         }
-    }
-
-    // MARK: - 跳过片头
-
-    /// 当前视频已标记的片头长度（秒）
-    private var introSeconds: Double { progress.intro(for: item.id) }
-
-    /// 片头内显示「跳过片头」；倍速面板打开时让位（两者都在右下角）
-    private var showIntroPill: Bool {
-        guard !speedOpen, !touchLocked, !queueOpen else { return false }
-        if introSeconds > 0 {
-            return model.currentTime < introSeconds
-        }
-        // 没标记过长片在开头两分钟内给「标记片头」入口；短片（示例视频）不给
-        return model.duration > 300 && model.currentTime < 120
-    }
-
-    /// 右下角、进度条上方；控件隐藏时也留着——片头刚开始往往控件已经缩了
-    private var introPillLayer: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 0)
-            HStack {
-                Spacer(minLength: 0)
-                introPill
-            }
-            .padding(.trailing, isLandscape ? 16 : 20)
-            .padding(.bottom, isLandscape ? 124 : 132)
-        }
-        .transition(.opacity)
-    }
-
-    /// 点按跳过 / 标记；已标记时长按 0.6 秒清除
-    private var introPill: some View {
-        Button {
-            if introSeconds > 0 {
-                model.seek(to: introSeconds)
-                showToast("已跳过片头")
-            } else {
-                let mark = model.currentTime
-                progress.setIntro(item.id, seconds: mark)
-                showToast(String(format: "片头标记 %.0f 秒，下次播放可跳过", mark))
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: introSeconds > 0 ? "forward.end.fill" : "scissors")
-                    .font(.system(size: 11, weight: .semibold))
-                Text(introSeconds > 0 ? "跳过片头" : "标记片头")
-                    .font(.system(size: 12.5, weight: .semibold))
-            }
-            .foregroundStyle(Palette.text)
-            .padding(.horizontal, 13)
-            .frame(height: 32)
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .glass(Capsule(), style: .stage)
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.6).onEnded { _ in
-                guard introSeconds > 0 else { return }
-                progress.setIntro(item.id, seconds: nil)
-                showToast("已清除片头标记")
-            }
-        )
     }
 
     // MARK: - 浮层

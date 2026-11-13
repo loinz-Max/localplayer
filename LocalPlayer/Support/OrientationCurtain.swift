@@ -51,23 +51,25 @@ final class OrientationCurtain: ObservableObject {
 
     /// 拉幕 → 幕布盖住后执行 `action`（转屏发生在幕布后面）→ 拉开幕布。
     /// 幕布期间拦截所有触摸，避免转屏途中误点。
+    ///
+    /// 节奏（总长约 0.72 秒）：淡入 0.14 → 0.11 秒后转屏 → 0.55 秒后开始揭幕 0.17。
+    /// 幕布要吃满整段系统旋转，所以「执行」之后还要留足余量，但整体比上一版快一档。
     func perform(_ hint: Hint, during action: @escaping @MainActor () -> Void) {
         hideTask?.cancel()
         workTask?.cancel()
         self.hint = hint
-        // 淡入放慢到 0.2 秒：太快会像闪了一下黑屏，慢一点才有「灯暗下来」的感觉
-        withAnimation(.easeInOut(duration: 0.20)) { isShowing = true }
+        withAnimation(.easeInOut(duration: 0.14)) { isShowing = true }
 
         workTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 150_000_000)
+            try? await Task.sleep(nanoseconds: 110_000_000)
             guard !Task.isCancelled else { return }
             action()
         }
 
         hideTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 700_000_000)
+            try? await Task.sleep(nanoseconds: 550_000_000)
             guard !Task.isCancelled, let self else { return }
-            withAnimation(.easeOut(duration: 0.24)) { self.isShowing = false }
+            withAnimation(.easeOut(duration: 0.17)) { self.isShowing = false }
         }
     }
 }
@@ -81,7 +83,8 @@ struct OrientationCurtainView: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(curtain.isShowing ? 0.94 : 0)
+            // 0.985：几乎实心，转屏时看不到画面被拧，只看到灯暗下去
+            Color.black.opacity(curtain.isShowing ? 0.985 : 0)
 
             if curtain.isShowing {
                 VStack(spacing: 14) {
@@ -109,9 +112,9 @@ struct OrientationCurtainView: View {
 
     private func scheduleText() {
         textVisible = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
             guard curtain.isShowing else { return }
-            withAnimation(.easeOut(duration: 0.22)) { textVisible = true }
+            withAnimation(.easeOut(duration: 0.16)) { textVisible = true }
         }
     }
 
@@ -133,8 +136,8 @@ struct OrientationCurtainView: View {
     private func syncAngle() {
         guard curtain.isShowing else { return }
         iconAngle = curtain.hint == .portrait ? 90 : 0
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
-            withAnimation(.spring(response: 0.48, dampingFraction: 0.72)) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.04) {
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.74)) {
                 iconAngle = curtain.hint == .portrait ? 0 : 90
             }
         }

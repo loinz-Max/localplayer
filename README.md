@@ -6,7 +6,7 @@
 
 **一个人的 iOS 本地视频播放器。SwiftUI + AVPlayer，零第三方依赖，不联网、不登录、不上传。**
 
-![version](https://img.shields.io/badge/version-0.0.5-blue)
+![version](https://img.shields.io/badge/version-0.0.6-blue)
 ![platform](https://img.shields.io/badge/iOS-17.0%2B-informational)
 ![deps](https://img.shields.io/badge/dependencies-0-success)
 ![CI](https://img.shields.io/github/actions/workflow/status/loinz-Max/localplayer/ios-ipa.yml?label=build)
@@ -39,7 +39,6 @@
 
 - 断点续播；播放模式：列表循环 / 单集循环 / 播完暂停（播完自动标已看）
 - **播完自动下一集**：设置开关（默认关），追剧模式
-- **跳过片头**：长片开头可「标记片头」，之后每次播放开头一键跳过，长按胶囊清除
 - **画中画**：播放页一键进系统小窗；小窗「展开」带进度回到播放页，「关闭」则暂停收尾
 - 倍速五档直选 + 长按倍速（1.5–3× 可配）；画面比例适应 / 填充 / 拉伸
 - 手势：横滑调进度（带目标帧预览）、左滑亮度右滑音量、长按加速、双击 ±10 秒、双指捏合切比例
@@ -73,7 +72,7 @@
 
 ## 📥 安装
 
-仓库 Release 提供未签名 ipa（当前 [v0.0.5 直链](https://github.com/loinz-Max/localplayer/releases/download/v0.0.5/LocalPlayer-0.0.5-unsigned.ipa)，2.10 MB）。ipa 未签名，装到真机需要自签：
+仓库 Release 提供未签名 ipa（当前 [v0.0.6 直链](https://github.com/loinz-Max/localplayer/releases/download/v0.0.6/LocalPlayer-0.0.6-unsigned.ipa)，2.10 MB）。ipa 未签名，装到真机需要自签：
 
 **Windows（爱思助手 / Sideloadly）**
 
@@ -121,7 +120,7 @@ Fork 之后第一次跑：Settings → Actions → General → **Workflow permis
 
 | 文档 | 内容 |
 |---|---|
-| [`docs/HANDOVER.md`](docs/HANDOVER.md) | ★ **开发交接文档**：当前进度、迭代记录（0.0.1–0.0.5 逐轮）、待办（P0–P4）、踩坑清单、接手指南 |
+| [`docs/HANDOVER.md`](docs/HANDOVER.md) | ★ **开发交接文档**：当前进度、迭代记录（0.0.1–0.0.6 逐轮）、待办（P0–P4）、踩坑清单、接手指南 |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | 视觉与交互规格：色板、玻璃配方、每页布局、设计决策表 |
 | [`docs/ACCEPTANCE-2026-11-13.md`](docs/ACCEPTANCE-2026-11-13.md) | 0.0.3 真机验收记录（11 项全过） |
 | [`docs/ACCEPTANCE-2026-11-12.md`](docs/ACCEPTANCE-2026-11-12.md) | 0.0.1 那轮的验收存档 |
@@ -159,7 +158,7 @@ localplayer/
    │  ├─ AppSettings.swift          所有设置项（键名集中在此）
    │  ├─ LibraryStore.swift         扫描、导入、删除、重命名、建文件夹、目录监听
    │  ├─ ImportService.swift        后台导入：copy / move + 进度与结果汇总
-   │  ├─ ProgressStore.swift        进度 + 最近播放顺序 + 已看标记 + 片头标记
+   │  ├─ ProgressStore.swift        进度 + 最近播放顺序 + 已看标记
    │  ├─ NowPlayingService.swift    锁屏 / 控制中心 / AirPods 遥控、打断恢复
    │  └─ ThumbnailLoader.swift      缩略图与时长缓存（NSCache + 并发去重）
    ├─ Support/
@@ -225,7 +224,7 @@ localplayer/
 | 数据 | 存哪 | 说明 |
 |---|---|---|
 | 视频文件 | `Documents/` | 相对路径即稳定 ID（`VideoItem.id`） |
-| 播放进度 | UserDefaults `progress.snapshot.v1` | `positions` / `totals` / `lastPlayed` / `order` / `watched` / `intros` |
+| 播放进度 | UserDefaults `progress.snapshot.v1` | `positions` / `totals` / `lastPlayed` / `order` / `watched` |
 | 文件夹显示名 | UserDefaults `folder.displayNames.v1` | 只影响界面，磁盘目录名不变 |
 | 设置 | UserDefaults | 键名集中在 `AppSettings.Key` |
 | 缩略图 | 内存 NSCache | 失败退 3 秒 → 首帧 → 占位图标 |

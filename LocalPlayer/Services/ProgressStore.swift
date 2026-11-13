@@ -10,8 +10,6 @@ final class ProgressStore: ObservableObject {
         var order: [String] = []
         /// 手动「标记为已看」的视频。老数据里没有这个字段，解码时给空数组。
         var watched: [String]? = nil
-        /// 每个视频的片头长度（秒）。老数据里没有，解码时给空字典。
-        var intros: [String: Double]? = nil
     }
 
     @Published private(set) var positions: [String: Double] = [:]
@@ -19,7 +17,6 @@ final class ProgressStore: ObservableObject {
     @Published private(set) var lastPlayed: String?
     @Published private(set) var order: [String] = []
     @Published private(set) var watched: Set<String> = []
-    @Published private(set) var intros: [String: Double] = [:]
 
     private let key = "progress.snapshot.v1"
     private let defaults = UserDefaults.standard
@@ -68,26 +65,12 @@ final class ProgressStore: ObservableObject {
         save()
     }
 
-    // MARK: - 片头标记
-
-    /// 视频的片头长度（秒），未标记为 0
-    func intro(for id: String) -> Double { intros[id] ?? 0 }
-
-    /// 标记 / 清除片头。seconds 传 nil 即清除
-    func setIntro(_ id: String, seconds: Double?) {
-        if let seconds, seconds > 0 {
-            intros[id] = seconds
-        } else {
-            intros[id] = nil
-        }
-        save()
-    }
+    // MARK: - 清理
 
     func forget(id: String) {
         positions[id] = nil
         totals[id] = nil
         watched.remove(id)
-        intros[id] = nil
         order.removeAll { $0 == id }
         if lastPlayed == id { lastPlayed = order.first }
         save()
@@ -99,7 +82,6 @@ final class ProgressStore: ObservableObject {
         if let value = positions.removeValue(forKey: old) { positions[new] = value }
         if let value = totals.removeValue(forKey: old) { totals[new] = value }
         if watched.remove(old) != nil { watched.insert(new) }
-        if let value = intros.removeValue(forKey: old) { intros[new] = value }
         if let index = order.firstIndex(of: old) { order[index] = new }
         if lastPlayed == old { lastPlayed = new }
         save()
@@ -124,7 +106,6 @@ final class ProgressStore: ObservableObject {
         lastPlayed = snap.lastPlayed
         order = snap.order
         watched = Set(snap.watched ?? [])
-        intros = snap.intros ?? [:]
     }
 
     /// 重新从磁盘读一次。用于外部改过 UserDefaults 后让内存与磁盘对齐
@@ -137,8 +118,7 @@ final class ProgressStore: ObservableObject {
             totals: totals,
             lastPlayed: lastPlayed,
             order: order,
-            watched: Array(watched),
-            intros: intros
+            watched: Array(watched)
         )
         if let data = try? JSONEncoder().encode(snap) {
             defaults.set(data, forKey: key)

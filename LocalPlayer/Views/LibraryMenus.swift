@@ -126,7 +126,7 @@ struct MoreMenu: View {
     var onNameSort: () -> Void
     var onDateSort: () -> Void
 
-    static let width: CGFloat = 210
+    static let width: CGFloat = 186
 
     var body: some View {
         GlassMenuContainer(width: Self.width) {

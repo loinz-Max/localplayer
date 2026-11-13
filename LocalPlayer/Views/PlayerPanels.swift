@@ -7,7 +7,8 @@ struct PanelShell<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        let width: CGFloat = isLandscape ? 320 : 264
+        // 竖屏 236 / 横屏 288：原来的 264/320 留白太多，压窄后列表更贴边、更轻
+        let width: CGFloat = isLandscape ? 288 : 236
 
         Group {
             if isLandscape {
