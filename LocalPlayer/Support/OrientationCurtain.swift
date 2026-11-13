@@ -81,15 +81,12 @@ struct OrientationCurtainView: View {
             Color.black.opacity(curtain.isShowing ? 0.94 : 0)
 
             if curtain.isShowing {
-                VStack(spacing: 12) {
+                VStack(spacing: 14) {
                     deviceIcon
                     Text(curtain.hint == .portrait ? "竖屏观看" : "横屏观看")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(Palette.text)
                 }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 18)
-                .glass(cornerRadius: 20, style: .panel)
                 .transition(.opacity)
             }
         }
@@ -110,7 +107,6 @@ struct OrientationCurtainView: View {
                     .frame(width: 6, height: 2)
                     .offset(y: 11)
             }
-            .shadow(color: .black.opacity(0.4), radius: 5, y: 2)
             .rotationEffect(.degrees(iconAngle))
     }
 
