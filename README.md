@@ -11,7 +11,7 @@
 - 设计规格：[`docs/DESIGN.md`](docs/DESIGN.md)
 - 界面原型：`preview/` 下的两个 HTML，双击用浏览器打开（支持 `?only=` 单屏查看）。
   **原型已经落后于实现，以代码为准** —— 具体差在哪见 `docs/DESIGN.md` 第 8 节
-- 验收存档：[`docs/ACCEPTANCE-2026-11-12.md`](docs/ACCEPTANCE-2026-11-12.md)
+- 验收存档：[`docs/ACCEPTANCE-2026-11-13.md`](docs/ACCEPTANCE-2026-11-13.md)（0.0.3 全部通过）、[`docs/ACCEPTANCE-2026-11-12.md`](docs/ACCEPTANCE-2026-11-12.md)
 - 品牌：桌面名「幕间」（英文 Interlude），图标是深底液态玻璃棱镜。换图标只替换 `icon-1024.png`（1024×1024、无 alpha），改完记得重启手机，iOS 会缓存旧图标
 - 规模：25 个 Swift 文件，约 5400 行；部署目标 iOS 17.0
 
@@ -135,7 +135,7 @@ localplayer/
 ├─ docs/
 │  ├─ HANDOVER.md                   ★ 交接文档：进度 / 权限 / 待办 / 坑
 │  ├─ DESIGN.md                     ★ 视觉与交互规格
-│  └─ ACCEPTANCE-2026-11-12.md      0.0.1 那轮实机验收（存档）
+│  └─ ACCEPTANCE-2026-11-1x.md      实机验收存档（2026-11-12、2026-11-13）
 ├─ preview/ui-v3.html               资料库 / 设置的整体方案
 ├─ preview/ui-v5-player.html        播放页改版
 ├─ preview/ui-preview.html          最早的初版预览，仅存档
